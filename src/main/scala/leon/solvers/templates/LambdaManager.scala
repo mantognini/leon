@@ -4,9 +4,6 @@ package leon
 package solvers
 package templates
 
-import purescala.Common._
-import purescala.Expressions._
-import purescala.ExprOps._
 import purescala.Types._
 
 class LambdaManager[T](encoder: TemplateEncoder[T]) {
@@ -62,7 +59,7 @@ class LambdaManager[T](encoder: TemplateEncoder[T]) {
     var appBlockers  : Map[(T, App[T]), Set[TemplateAppInfo[T]]] = Map.empty.withDefaultValue(Set.empty)
 
     def mkBlocker(blockedApp: (T, App[T]), lambda: (T, LambdaTemplate[T])) : Unit = {
-      val (_, App(caller, tpe, args)) = blockedApp
+      val (_, App(caller, _, args)) = blockedApp
       val (idT, template) = lambda
 
       val equals = encoder.mkEquals(idT, caller)

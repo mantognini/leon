@@ -14,8 +14,14 @@ import utils.IncrementalBijection
 
 import _root_.smtlib.common._
 import _root_.smtlib.printer.{RecursivePrinter => SMTPrinter}
-import _root_.smtlib.parser.Commands.{Constructor => SMTConstructor, FunDef => _, _}
-import _root_.smtlib.parser.Terms.{Identifier => SMTIdentifier, Let => SMTLet, _}
+import _root_.smtlib.parser.Commands.{Constructor => SMTConstructor, _}
+import _root_.smtlib.parser.Terms.{
+  Identifier => SMTIdentifier,
+  Let => SMTLet,
+  ForAll => SMTForall,
+  Exists => SMTExists,
+  _
+}
 import _root_.smtlib.parser.CommandsResponses.{Error => ErrorResponse, _}
 import _root_.smtlib.theories._
 import _root_.smtlib.{Interpreter => SMTInterpreter}
@@ -353,6 +359,28 @@ trait SMTLIBTarget {
     }
   }
 
+  private def quantifiedToSMT(e: Expr, quantifier: (SortedVar, Seq[SortedVar], Term) => Term)
+                             (implicit bindings: Map[Identifier, Term]) : Term = {
+    def forceLambda(e: Expr): Lambda = e match {
+      case l : Lambda => l
+      case _ =>
+        val FunctionType(from, _) = e.getType
+        val vds = from map (tpe => ValDef(FreshIdentifier("x", tpe, true)))
+        Lambda(vds, application(e, vds map { _.toVariable}))
+    }
+
+    val Lambda(vars, body) = forceLambda(e)
+    val (ids, smtVars, newBs) = vars.map { vd =>
+      val id = vd.id
+      val sym = id2sym(id)
+      (id, SortedVar(sym, declareSort(vd.getType)), symbolToQualifiedId(sym))
+    }.unzip3
+
+    val newBindings = ids.zip(newBs).toMap
+    val smtBody = toSMT(body)(bindings ++ newBindings)
+    quantifier(smtVars.head, smtVars.tail, smtBody)
+  }
+
   def toSMT(e: Expr)(implicit bindings: Map[Identifier, Term]): Term = {
     e match {
       case Variable(id) =>
@@ -379,6 +407,12 @@ trait SMTLIBTarget {
           Seq(),
           newBody
         )
+
+      case Exists(e) =>
+        quantifiedToSMT(e, SMTExists)
+
+      case Forall(e) =>
+        quantifiedToSMT(e, SMTForall)
 
       case er @ Error(tpe, _) =>
         declareVariable(FreshIdentifier("error_value", tpe))
@@ -534,7 +568,7 @@ trait SMTLIBTarget {
           case (_: And) => Core.And(sub.map(toSMT): _*)
           case (_: Or) => Core.Or(sub.map(toSMT): _*)
           case (_: IfExpr) => Core.ITE(toSMT(sub(0)), toSMT(sub(1)), toSMT(sub(2))) 
-          case (f: FunctionInvocation) => 
+          case (f: FunctionInvocation) =>
             if (sub.isEmpty) declareFunction(f.tfd) else {
               FunctionApplication(
                 declareFunction(f.tfd),
@@ -658,6 +692,7 @@ trait SMTLIBTarget {
   override def assertCnstr(expr: Expr): Unit = {
     variablesOf(expr).foreach(declareVariable)
     val term = toSMT(expr)(Map())
+    println(term)
     sendCommand(Assert(term))
   }
 
@@ -665,7 +700,7 @@ trait SMTLIBTarget {
     case CheckSatStatus(SatStatus)     => Some(true)
     case CheckSatStatus(UnsatStatus)   => Some(false)
     case CheckSatStatus(UnknownStatus) => None
-    case _                               => None
+    case _                             => None
   }
 
   override def getModel: Map[Identifier, Expr] = {
@@ -681,7 +716,6 @@ trait SMTLIBTarget {
     valuationPairs.collect {
       case (SimpleSymbol(sym), value) if variables.containsB(sym) =>
         val id = variables.toA(sym)
-
         (id, fromSMT(value, id.getType)(Map(), Map()))
     }.toMap
   }
