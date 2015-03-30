@@ -692,7 +692,6 @@ trait SMTLIBTarget {
   override def assertCnstr(expr: Expr): Unit = {
     variablesOf(expr).foreach(declareVariable)
     val term = toSMT(expr)(Map())
-    println(term)
     sendCommand(Assert(term))
   }
 
