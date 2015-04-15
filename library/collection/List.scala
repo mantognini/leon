@@ -27,8 +27,8 @@ sealed abstract class List[T] {
   def ++(that: List[T]): List[T] = (this match {
     case Nil() => that
     case Cons(x, xs) => Cons(x, xs ++ that)
-  }) ensuring { res => 
-    (res.content == this.content ++ that.content) && 
+  }) ensuring { res =>
+    (res.content == this.content ++ that.content) &&
     (res.size == this.size + that.size)
   }
 
@@ -79,7 +79,7 @@ sealed abstract class List[T] {
       }
   }} ensuring { _.size == (
     if      (i <= 0)         BigInt(0)
-    else if (i >= this.size) this.size 
+    else if (i >= this.size) this.size
     else                     i
   )}
 
@@ -112,7 +112,7 @@ sealed abstract class List[T] {
         Cons(h, r)
       }
   }} ensuring { res =>
-    res.size == this.size && 
+    res.size == this.size &&
     res.content == (
       (this.content -- Set(from)) ++
       (if (this.content contains from) Set(to) else Set[T]())
@@ -310,9 +310,9 @@ sealed abstract class List[T] {
     }
   }
 
-  def isEmpty = this match { 
+  def isEmpty = this match {
     case Nil() => true
-    case _ => false 
+    case _ => false
   }
 
   // Higher-order API
@@ -330,7 +330,7 @@ sealed abstract class List[T] {
     case Nil() => z
     case Cons(h, t) => f(h, t.foldRight(f)(z))
   }
- 
+
   def scanLeft[R](z: R)(f: (R,T) => R): List[R] = this match {
     case Nil() => z :: Nil()
     case Cons(h,t) => z :: t.scanLeft(f(z,h))(f)
@@ -338,12 +338,12 @@ sealed abstract class List[T] {
 
   def scanRight[R](f: (T,R) => R)(z: R): List[R] = { this match {
     case Nil() => z :: Nil()
-    case Cons(h, t) => 
+    case Cons(h, t) =>
       val rest@Cons(h1,_) = t.scanRight(f)(z)
       f(h, h1) :: rest
   }} ensuring { !_.isEmpty }
 
-  def flatMap[R](f: T => List[R]): List[R] = 
+  def flatMap[R](f: T => List[R]): List[R] =
     ListOps.flatten(this map f)
 
   def filter(p: T => Boolean): List[T] = { this match {
@@ -461,6 +461,15 @@ object ListSpecs {
     (((l1 ++ l2) ++ l3) == (l1 ++ (l2 ++ l3)))
   }.holds
 
+  def rightIdAppend[T](l1 : List[T]) : Boolean = {
+    (l1 match {
+      case Nil() => true
+      case Cons(x, xs) => rightIdAppend(xs)
+    }) &&
+    ((l1 ++ Nil()) == l1)
+  }.holds
+
+
   def snocIsAppend[T](l : List[T], t : T) : Boolean = {
     (l match {
       case Nil() => true
@@ -493,19 +502,44 @@ object ListSpecs {
     (l.reverse.reverse == l)
   }.holds
 
-  //// my hand calculation shows this should work, but it does not seem to be found
-  //def reverseAppend[T](l1 : List[T], l2 : List[T]) : Boolean = {
-  //  (l1 match {
-  //    case Nil() => true
-  //    case Cons(x,xs) => {
-  //      reverseAppend(xs,l2) &&
-  //      snocAfterAppend[T](l2.reverse, xs.reverse, x) &&
-  //      l1.reverse == (xs.reverse :+ x)
-  //    }
-  //  }) &&
-  //  ((l1 ++ l2).reverse == (l2.reverse ++ l1.reverse))
-  //}.holds
-  
+  // my hand calculation shows this should work, but it does not seem to be found
+  @induct
+  def reverseAppend[T](l1 : List[T], l2 : List[T]) : Boolean = {
+    (l1 match {
+      case Nil() => {
+        ((Nil() ++ l2).reverse == l2.reverse) &&
+        (l2.reverse == l2.reverse ++ Nil()) &&
+        rightIdAppend(l2) &&
+        (l2.reverse ++ Nil() == l2.reverse ++ Nil().reverse)
+      }
+      case Cons(x, xs) => {
+        ((l1 ++ l2).reverse == ((x :: xs) ++ l2).reverse) &&
+        (((x :: xs) ++ l2).reverse == (x :: (xs ++ l2)).reverse) &&
+        ((x :: xs) ++ l2) == (x :: (xs ++ l2)) &&
+        ((x :: (xs ++ l2)).reverse == (xs ++ l2).reverse :+ x) &&
+        ((xs ++ l2).reverse :+ x == (l2.reverse ++ xs.reverse) :+ x) &&
+        ((xs ++ l2).reverse == (l2.reverse ++ xs.reverse)) &&
+        reverseAppend(xs, l2) &&
+        ((l2.reverse ++ xs.reverse) :+ x == l2.reverse ++ (xs.reverse :+ x)) &&
+        snocAfterAppend[T](l2.reverse, xs.reverse, x) &&
+        ((xs.reverse :+ x) == l1.reverse) &&
+        (l2.reverse ++ (xs.reverse :+ x) == l2.reverse ++ l1.reverse)
+        // (x :: xs.reverse) == xs.reverse :+ x
+        // (x :: xs) ++ that => x :: (xs ++ that)
+        //((l1 ++ l2).reverse == (l2.reverse ++ l1.reverse))
+      }
+    }) &&
+    ((l1 ++ l2).reverse == (l2.reverse ++ l1.reverse))
+  }.holds
+
+  def helper[T](l2: List[T]): Boolean = {
+    ((Nil() ++ l2).reverse == l2.reverse) &&
+    (l2.reverse == l2.reverse ++ Nil()) &&
+    rightIdAppend(l2) &&
+    (l2.reverse ++ Nil() == l2.reverse ++ Nil().reverse) &&
+    true
+  }.holds
+
   //@induct
   //def folds[T,R](l : List[T], z : R, f : (R,T) => R) = {
   //  { l match {
@@ -521,7 +555,7 @@ object ListSpecs {
   //def scanVsFoldLeft[A,B](l : List[A], z: B, f: (B,A) => B): Boolean = {
   //  l.scanLeft(z)(f).last == l.foldLeft(z)(f)
   //}.holds
-  
+
   @induct
   def scanVsFoldRight[A,B](l: List[A], z: B, f: (A,B) => B): Boolean = {
     l.scanRight(f)(z).head == l.foldRight(f)(z)
