@@ -4,42 +4,7 @@ package leon.collection
 import leon._
 import leon.lang._
 import leon.annotation._
-//import leon.proof._
-
-// FIXME: the following should go into the leon.proof package object.
-import leon.annotation._
-import scala.language.implicitConversions
-object proof {
-
-  sealed case class ProofOps(val property: Boolean) {
-    def because(proof: Boolean): Boolean = property && proof
-  }
-
-  implicit def boolean2ProofOps(property: Boolean): ProofOps =
-    ProofOps(property)
-
-  // @ignore
-  def trivial: Boolean = true
-
-  // @ignore
-  def by(proof: Boolean)(cont: Boolean): Boolean =
-    proof && cont
-
-  @ignore
-  sealed class EqReasoning[A](val x: A) {
-    def ==:(proof: Boolean)(y: A): A = {
-      x == y && proof
-      y
-    }
-    def qed: A = x
-  }
-
-  @ignore
-  implicit def any2EqReasoning[A](x: A): EqReasoning[A] =
-    new EqReasoning(x)
-}
-
-import proof._
+import leon.proof._
 
 @library
 sealed abstract class List[T] {
@@ -539,29 +504,24 @@ object ListSpecs {
   }.holds
 
   def reverseAppend[T](l1 : List[T], l2 : List[T]) : Boolean = {
-    ((l1 ++ l2).reverse == (l2.reverse ++ l1.reverse)) because {
+    (l1 ++ l2).reverse == (l2.reverse ++ l1.reverse) because {
       l1 match {
         case Nil() => {
-          ((Nil() ++ l2).reverse == l2.reverse) && trivial && by {
-            rightIdAppend(l2.reverse)
-          } (l2.reverse ++ Nil() == l2.reverse ++ Nil().reverse)
-        }
+          (Nil() ++ l2).reverse         ==| rightIdAppend(l2.reverse) |
+          l2.reverse                    ==| trivial                   |
+          l2.reverse ++ Nil()           ==| trivial                   |
+          l2.reverse ++ Nil().reverse
+        }.qed
         case Cons(x, xs) => {
-          ((l1 ++ l2).reverse == ((x :: xs) ++ l2).reverse) &&
-          (((x :: xs) ++ l2).reverse == (x :: (xs ++ l2)).reverse) &&
-          ((x :: xs) ++ l2) == (x :: (xs ++ l2)) &&
-          ((x :: (xs ++ l2)).reverse == (xs ++ l2).reverse :+ x) &&
-          ((xs ++ l2).reverse :+ x == (l2.reverse ++ xs.reverse) :+ x) &&
-          ((xs ++ l2).reverse == (l2.reverse ++ xs.reverse)) &&
-          reverseAppend(xs, l2) &&
-          ((l2.reverse ++ xs.reverse) :+ x == l2.reverse ++ (xs.reverse :+ x)) &&
-          snocAfterAppend[T](l2.reverse, xs.reverse, x) &&
-          ((xs.reverse :+ x) == l1.reverse) &&
-          (l2.reverse ++ (xs.reverse :+ x) == l2.reverse ++ l1.reverse)
-          // (x :: xs.reverse) == xs.reverse :+ x
-          // (x :: xs) ++ that => x :: (xs ++ that)
-          //((l1 ++ l2).reverse == (l2.reverse ++ l1.reverse))
-        }
+          (l1 ++ l2).reverse                ==| trivial               |
+          ((x :: xs) ++ l2).reverse         ==| trivial               |
+          (x :: (xs ++ l2)).reverse         ==| trivial               |
+          (xs ++ l2).reverse :+ x           ==| reverseAppend(xs, l2) |
+          (l2.reverse ++ xs.reverse) :+ x   ==|
+            snocAfterAppend(l2.reverse, xs.reverse, x)                |
+          l2.reverse ++ (xs.reverse :+ x)   ==| trivial               |
+          l2.reverse ++ l1.reverse
+        }.qed
       }
     }
   }.holds
