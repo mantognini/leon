@@ -513,14 +513,13 @@ object ListSpecs {
           l2.reverse ++ Nil().reverse
         }.qed
         case Cons(x, xs) => {
-          (l1 ++ l2).reverse                ==| trivial               |
           ((x :: xs) ++ l2).reverse         ==| trivial               |
           (x :: (xs ++ l2)).reverse         ==| trivial               |
           (xs ++ l2).reverse :+ x           ==| reverseAppend(xs, l2) |
           (l2.reverse ++ xs.reverse) :+ x   ==|
             snocAfterAppend(l2.reverse, xs.reverse, x)                |
           l2.reverse ++ (xs.reverse :+ x)   ==| trivial               |
-          l2.reverse ++ l1.reverse
+          l2.reverse ++ (x :: xs).reverse
         }.qed
       }
     }
@@ -536,11 +535,14 @@ object ListSpecs {
   //}.holds
   //
 
-  //Can't prove this
-  //@induct
-  //def scanVsFoldLeft[A,B](l : List[A], z: B, f: (B,A) => B): Boolean = {
-  //  l.scanLeft(z)(f).last == l.foldLeft(z)(f)
-  //}.holds
+  def scanVsFoldLeft[A, B](l : List[A], z: B, f: (B, A) => B): Boolean = {
+    l.scanLeft(z)(f).last == l.foldLeft(z)(f) because {
+      l match {
+        case Nil() => true
+        case Cons(x, xs) => scanVsFoldLeft(xs, f(z, x), f)
+      }
+    }
+  }.holds
 
   @induct
   def scanVsFoldRight[A,B](l: List[A], z: B, f: (A,B) => B): Boolean = {
