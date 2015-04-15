@@ -10,14 +10,13 @@ import leon.annotation._
 import leon.annotation._
 import scala.language.implicitConversions
 object proof {
-  @ignore
-  sealed class ProofOps(val property: Boolean) {
+
+  sealed case class ProofOps(val property: Boolean) {
     def because(proof: Boolean): Boolean = property && proof
   }
 
-  @ignore
   implicit def boolean2ProofOps(property: Boolean): ProofOps =
-    new ProofOps(property)
+    ProofOps(property)
 
   // @ignore
   def trivial: Boolean = true
