@@ -503,13 +503,12 @@ object ListSpecs {
   }.holds
 
   // my hand calculation shows this should work, but it does not seem to be found
-  @induct
   def reverseAppend[T](l1 : List[T], l2 : List[T]) : Boolean = {
     (l1 match {
       case Nil() => {
         ((Nil() ++ l2).reverse == l2.reverse) &&
         (l2.reverse == l2.reverse ++ Nil()) &&
-        rightIdAppend(l2) &&
+        rightIdAppend(l2.reverse) &&
         (l2.reverse ++ Nil() == l2.reverse ++ Nil().reverse)
       }
       case Cons(x, xs) => {
@@ -530,14 +529,6 @@ object ListSpecs {
       }
     }) &&
     ((l1 ++ l2).reverse == (l2.reverse ++ l1.reverse))
-  }.holds
-
-  def helper[T](l2: List[T]): Boolean = {
-    ((Nil() ++ l2).reverse == l2.reverse) &&
-    (l2.reverse == l2.reverse ++ Nil()) &&
-    rightIdAppend(l2) &&
-    (l2.reverse ++ Nil() == l2.reverse ++ Nil().reverse) &&
-    true
   }.holds
 
   //@induct
