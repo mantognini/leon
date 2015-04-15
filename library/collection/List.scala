@@ -507,8 +507,8 @@ object ListSpecs {
     (l1 ++ l2).reverse == (l2.reverse ++ l1.reverse) because {
       l1 match {
         case Nil() => {
-          (Nil() ++ l2).reverse         ==| rightIdAppend(l2.reverse) |
-          l2.reverse                    ==| trivial                   |
+          (Nil() ++ l2).reverse         ==| trivial                   |
+          l2.reverse                    ==| rightIdAppend(l2.reverse) |
           l2.reverse ++ Nil()           ==| trivial                   |
           l2.reverse ++ Nil().reverse
         }.qed
