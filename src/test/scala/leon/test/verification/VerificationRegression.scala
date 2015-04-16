@@ -10,9 +10,6 @@ import leon.purescala.Definitions.Program
 import leon.frontends.scalac.ExtractionPhase
 import leon.utils.PreprocessingPhase
 
-import _root_.smtlib.interpreters._
-
-import java.io.File
 
 // If you add another regression test, make sure it contains one object whose name matches the file name
 // This is because we compile all tests from each folder separately.
@@ -51,7 +48,7 @@ trait VerificationRegression extends LeonTestSuite {
     }
   }
 
-  private[verification] def forEachFileIn(cat : String, forError: Boolean = false)(block : Output=>Unit) {
+  private[verification] def forEachFileIn(cat : String)(block : Output=>Unit) {
     val fs = filesInResourceDir( testDir + cat, _.endsWith(".scala")).toList
 
     fs foreach { file => 
@@ -63,6 +60,24 @@ trait VerificationRegression extends LeonTestSuite {
 
     mkTest(files)(block)
   }
-  
-  
+
+  def test() = {
+    forEachFileIn("valid") { output =>
+      val Output(report, reporter) = output
+      for ((vc, vr) <- report.vrs) {
+        if (!vr.isValid) {
+          fail("The following verification condition was invalid: " + vc.toString + " @" + vc.getPos)
+        }
+      }
+      reporter.terminateIfError()
+    }
+
+    forEachFileIn("invalid") { output =>
+      val Output(report, reporter) = output
+      assert(report.totalInvalid > 0,
+        "There should be at least one invalid verification condition.")
+      assert(report.totalUnknown === 0,
+        "There should not be unknown verification conditions.")
+    }
+  }
 }
