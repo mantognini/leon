@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 package object proof {
 
   case class ProofOps(prop: Boolean) {
-    def because(proof: Boolean): Boolean = prop && proof
+    def because(proof: Boolean): Boolean = proof && prop
     def implies(that: Boolean): Boolean = !prop || that
   }
 
@@ -19,8 +19,7 @@ package object proof {
     proof && prop
 
   case class EqReasoning[A](x: A, prop: Boolean) {
-    def ==|(proof: Boolean): EqReasoning[A] =
-      EqReasoning(x, this.prop && proof)
+    def ==|(proof: Boolean): EqReasoning[A] = EqReasoning(x, prop && proof)
 
     def |(that: EqReasoning[A]): EqReasoning[A] =
       EqReasoning(that.x, this.prop && (this.x == that.x) && that.prop)
