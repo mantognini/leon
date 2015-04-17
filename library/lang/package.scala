@@ -7,15 +7,15 @@ import scala.language.implicitConversions
 
 package object lang {
   @ignore
-  sealed class IsValid(val property : Boolean) {
+  implicit class BooleanDecorations(val underlying: Boolean) {
     def holds : Boolean = {
-      assert(property)
-      property
+      assert(underlying)
+      underlying
+    }
+    def ==> (that: Boolean): Boolean = {
+      !underlying || that
     }
   }
-
-  @ignore
-  implicit def any2IsValid(x: Boolean) : IsValid = new IsValid(x)
 
   @ignore
   object InvariantFunction {
@@ -40,4 +40,24 @@ package object lang {
       try { tests(in) == out } catch { case _ : MatchError => true }
   }
 
+  @ignore
+  def forall[A](pred: A => Boolean): Boolean = ???
+  @ignore
+  def forall[A,B](pred: (A,B) => Boolean): Boolean = ???
+  @ignore
+  def forall[A,B,C](pred: (A,B,C) => Boolean): Boolean = ???
+  @ignore
+  def forall[A,B,C,D](pred: (A,B,C,D) => Boolean): Boolean = ???
+  @ignore
+  def forall[A,B,C,D,E](pred: (A,B,C,D,E) => Boolean): Boolean = ???
+  @ignore
+  def exists[A](pred: A => Boolean): Boolean = ???
+  @ignore
+  def exists[A,B](pred: (A,B) => Boolean): Boolean = ???
+  @ignore
+  def exists[A,B,C](pred: (A,B,C) => Boolean): Boolean = ???
+  @ignore
+  def exists[A,B,C,D](pred: (A,B,C,D) => Boolean): Boolean = ???
+  @ignore
+  def exists[A,B,C,D,E](pred: (A,B,C,D,E) => Boolean): Boolean = ???
 }

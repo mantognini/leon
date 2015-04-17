@@ -145,10 +145,29 @@ trait ASTExtractors {
 
     object ExHoldsExpression {
       def unapply(tree: Select) : Option[Tree] = tree match {
-        case Select(Apply(ExSymbol("leon", "lang", "any2IsValid"), realExpr :: Nil), ExNamed("holds")) =>
-            Some(realExpr)
+        case Select(
+          Apply(ExSelected("leon", "lang", "package", "BooleanDecorations"), realExpr :: Nil),
+          ExNamed("holds")
+        ) => Some(realExpr)
         case _ => None
        }
+    }
+
+    object ExImplies {
+      def unapply(tree: Apply) : Option[(Tree, Tree)] = tree match {
+        case
+          Apply(
+            Select(
+              Apply(
+                ExSelected("leon", "lang", "package", "BooleanDecorations"),
+                lhs :: Nil
+              ),
+              ExNamed("$eq$eq$greater")
+            ),
+            rhs :: Nil
+          ) => Some((lhs, rhs))
+        case _ => None
+      }
     }
 
     object ExRequiredExpression {
@@ -521,15 +540,25 @@ trait ASTExtractors {
     }
 
     object ExForallExpression {
-      def unapply(tree: Apply) : Option[(List[(Tree, Symbol)], Tree)] = tree match {
+      def unapply(tree: Apply) : Option[Tree] = tree match {
         case a @ Apply(
             TypeApply(s @ ExSymbol("leon", "lang", "forall"), types),
-            Function(vds, predicateBody) :: Nil) =>
-          Some(((types zip vds.map(_.symbol)), predicateBody))
+            Seq(pred)
+        ) =>
+          Some(pred)
         case _ => None
       }
     }
 
+    object ExExistsExpression {
+      def unapply(tree: Apply) : Option[Tree] = tree match {
+        case a @ Apply(
+        TypeApply(s @ ExSymbol("leon", "lang", "exists"), types),
+        Seq(pred)) =>
+          Some(pred)
+        case _ => None
+      }
+    }
     object ExArrayUpdated {
       def unapply(tree: Apply): Option[(Tree,Tree,Tree)] = tree match {
         case Apply(

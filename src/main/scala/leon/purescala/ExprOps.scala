@@ -272,30 +272,8 @@ object ExprOps {
     v2
   }
 
-  
-  
-  
-  
-  
-  ///*
-  // * Turn a total function returning Option[A] into a partial function
-  // * returning A.
-  // * Optimize for isDefinedAt -> apply access pattern
-  // */
-  //def unlift[A, B](f: A => Option[B]): PartialFunction[A,B] = new PartialFunction[A, B] {
-  //  var last: Option[(A, Option[B])] = None
 
-  //  def apply(a: A) = last match {
-  //    case Some((a2, res)) if a2 == a => res.get
-  //    case _ => f(a).get
-  //  }
 
-  //  def isDefinedAt(a: A) = {
-  //    val res = f(a)
-  //    last = Some((a, res))
-  //    res.isDefined
-  //  }
-  //}
 
   /**
    * Auxiliary API
@@ -344,8 +322,8 @@ object ExprOps {
 
   def replaceFromIDs(substs: Map[Identifier, Expr], expr: Expr) : Expr = {
     postMap( {
-        case Variable(i) => substs.get(i)
-        case _ => None
+      case Variable(i) => substs.get(i)
+      case _ => None
     })(expr)
   }
 
@@ -361,7 +339,6 @@ object ExprOps {
           case MatchLike(_, cses, _) => subvs -- cses.map(_.pattern.binders).foldLeft(Set[Identifier]())((a, b) => a ++ b)
           case Passes(_, _ , cses)   => subvs -- cses.map(_.pattern.binders).foldLeft(Set[Identifier]())((a, b) => a ++ b)
           case Lambda(args, body) => subvs -- args.map(_.id)
-          case Forall(args, body) => subvs -- args.map(_.id)
           case _ => subvs
         }
     })(expr)
@@ -369,8 +346,8 @@ object ExprOps {
 
   def containsFunctionCalls(expr: Expr): Boolean = {
     exists{
-        case _: FunctionInvocation => true
-        case _ => false
+      case _: FunctionInvocation => true
+      case _ => false
     }(expr)
   }
 
