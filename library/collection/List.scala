@@ -446,6 +446,34 @@ object ListSpecs {
     (l.reverse.apply(i) == l.apply(l.size - 1 - i))
   }.holds
 
+  def snocLast[T](l: List[T], x: T): Boolean = {
+    (l :+ x).last == x because {
+      l match {
+        case Nil() => true
+        case Cons(y, ys) => {
+          ((y :: ys) :+ x).last   ==| trivial         |
+          (y :: (ys :+ x)).last   ==| trivial         |
+          (ys :+ x).last          ==| snocLast(ys, x) |
+          x
+        }.qed
+      }
+    }
+  }.holds
+
+  def headReverseLast[T](l: List[T]): Boolean = {
+    require (!l.isEmpty)
+    l.head == l.reverse.last because {
+      l match {
+        case Cons(x, xs) => {
+          (x :: xs).head           ==| trivial                 |
+          x                        ==| snocLast(xs.reverse, x) |
+          (xs.reverse :+ x).last   ==| trivial                 |
+          (x :: xs).reverse.last
+        }.qed
+      }
+    }
+  }.holds
+
   def appendIndex[T](l1 : List[T], l2 : List[T], i : BigInt) : Boolean = {
     require(0 <= i && i < l1.size + l2.size)
     (l1 match {
@@ -470,7 +498,6 @@ object ListSpecs {
     }) &&
     ((l1 ++ Nil()) == l1)
   }.holds
-
 
   def snocIsAppend[T](l : List[T], t : T) : Boolean = {
     (l match {
@@ -526,15 +553,33 @@ object ListSpecs {
     }
   }.holds
 
-  //@induct
-  //def folds[T,R](l : List[T], z : R, f : (R,T) => R) = {
-  //  { l match {
-  //    case Nil() => true
-  //    case Cons(h,t) => snocReverse[T](t, h)
-  //  }} &&
-  //  l.foldLeft(z)(f) == l.reverse.foldRight((x:T,y:R) => f(y,x))(z)
-  //}.holds
-  //
+  def snocFoldRight[A, B](xs: List[A], y: A, z: B, f: (A, B) => B): Boolean = {
+    (xs :+ y).foldRight(f)(z) == xs.foldRight(f)(f(y, z)) because {
+      xs match {
+        case Nil() => true
+        case Cons(x, xs) => snocFoldRight(xs, y, z, f)
+      }
+    }
+  }.holds
+
+  def folds[A, B](
+    xs: List[A], z: B, f: (B, A) => B): Boolean = {
+    xs.foldLeft(z)(f) ==
+      xs.reverse.foldRight((x: A, z: B) => f(z, x))(z) because {
+      xs match {
+        case Nil() => true
+        case Cons(x, xs) => {
+          (x :: xs).foldLeft(z)(f)   ==| trivial                     |
+          xs.foldLeft(f(z, x))(f)    ==| folds(xs, f(z, x), f)       |
+          xs.reverse.foldRight((x: A, z: B) => f(z, x))(f(z, x))   ==|
+            snocFoldRight(xs.reverse, x, z, (x: A, z: B) => f(z, x)) |
+          (xs.reverse :+ x).foldRight((x: A, z: B) => f(z, x))(z)  ==|
+            trivial                                                  |
+          (x :: xs).reverse.foldRight((x: A, z: B) => f(z, x))(z)
+        }.qed
+      }
+    }
+  }.holds
 
   def scanVsFoldLeft[A, B](l : List[A], z: B, f: (B, A) => B): Boolean = {
     l.scanLeft(z)(f).last == l.foldLeft(z)(f) because {
