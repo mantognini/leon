@@ -562,20 +562,19 @@ object ListSpecs {
     }
   }.holds
 
-  def folds[A, B](
-    xs: List[A], z: B, f: (B, A) => B): Boolean = {
-    xs.foldLeft(z)(f) ==
-      xs.reverse.foldRight((x: A, z: B) => f(z, x))(z) because {
+  def folds[A, B](xs: List[A], z: B, f: (B, A) => B): Boolean = {
+    val f2 = (x: A, z: B) => f(z, x)
+    xs.foldLeft(z)(f) == xs.reverse.foldRight(f2)(z) because {
       xs match {
         case Nil() => true
         case Cons(x, xs) => {
-          (x :: xs).foldLeft(z)(f)   ==| trivial                     |
-          xs.foldLeft(f(z, x))(f)    ==| folds(xs, f(z, x), f)       |
-          xs.reverse.foldRight((x: A, z: B) => f(z, x))(f(z, x))   ==|
-            snocFoldRight(xs.reverse, x, z, (x: A, z: B) => f(z, x)) |
-          (xs.reverse :+ x).foldRight((x: A, z: B) => f(z, x))(z)  ==|
-            trivial                                                  |
-          (x :: xs).reverse.foldRight((x: A, z: B) => f(z, x))(z)
+          (x :: xs).foldLeft(z)(f)              ==| trivial               |
+          xs.foldLeft(f(z, x))(f)               ==| folds(xs, f(z, x), f) |
+          xs.reverse.foldRight(f2)(f(z, x))     ==| trivial               |
+          xs.reverse.foldRight(f2)(f2(x, z))    ==|
+            snocFoldRight(xs.reverse, x, z, f2)                           |
+          (xs.reverse :+ x).foldRight(f2)(z)    ==| trivial               |
+          (x :: xs).reverse.foldRight(f2)(z)
         }.qed
       }
     }
