@@ -8,6 +8,8 @@ import purescala.Definitions._
 import purescala.Expressions._
 import purescala.ExprOps._
 
+import scala.concurrent.duration._
+
 import solvers._
 
 object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
@@ -16,39 +18,23 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
   implicit val debugSection = utils.DebugSectionVerification
 
-  override val definedOptions : Set[LeonOptionDef] = Set(
-    LeonValueOptionDef("functions", "--functions=f1:f2", "Limit verification to f1,f2,..."),
-    LeonValueOptionDef("timeout",   "--timeout=T",       "Timeout after T seconds when trying to prove a verification condition.")
-  )
-
   def run(ctx: LeonContext)(program: Program): VerificationReport = {
-    var filterFuns: Option[Seq[String]] = None
-    var timeout: Option[Int]             = None
+    val filterFuns: Option[Seq[String]] = ctx.findOption(SharedOptions.optFunctions)
+    val timeout:    Option[Long]        = ctx.findOption(SharedOptions.optTimeout)
 
     val reporter = ctx.reporter
 
-    for(opt <- ctx.options) opt match {
-      case LeonValueOption("functions", ListValue(fs)) =>
-        filterFuns = Some(fs)
-
-
-      case v @ LeonValueOption("timeout", _) =>
-        timeout = v.asInt(ctx)
-
-      case _ =>
-    }
-
     // Solvers selection and validation
-    val entrySolverFactory = SolverFactory.getFromSettings(ctx, program)
+    var baseSolverF = SolverFactory.getFromSettings(ctx, program)
 
-    val mainSolverFactory = timeout match {
+    val solverF = timeout match {
       case Some(sec) =>
-        new TimeoutSolverFactory(entrySolverFactory, sec*1000L)
+        baseSolverF.withTimeout(sec.seconds)
       case None =>
-        entrySolverFactory
+        baseSolverF
     }
 
-    val vctx = VerificationContext(ctx, program, mainSolverFactory, reporter)
+    val vctx = VerificationContext(ctx, program, solverF, reporter)
 
     reporter.debug("Generating Verification Conditions...")
 
@@ -117,14 +103,14 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       for (vc <- vcs.par if !stop) yield {
         val r = checkVC(vctx, vc)
         if (interruptManager.isInterrupted) interruptManager.recoverInterrupt()
-        stop = stopAfter.map(f => f(vc, r)).getOrElse(false)
+        stop = stopAfter.exists(_(vc, r))
         vc -> Some(r)
       }
     } else {
       for (vc <- vcs.toSeq.sortWith((a,b) => a.fd.getPos < b.fd.getPos) if !interruptManager.isInterrupted && !stop) yield {
         val r = checkVC(vctx, vc)
         if (interruptManager.isInterrupted) interruptManager.recoverInterrupt()
-        stop = stopAfter.map(f => f(vc, r)).getOrElse(false)
+        stop = stopAfter.exists(_(vc, r))
         vc -> Some(r)
       }
     }
@@ -140,7 +126,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
     val vcCond = vc.condition
 
-    val s = solverFactory.getNewSolver
+    val s = solverFactory.getNewSolver()
 
     try {
       reporter.synchronized {

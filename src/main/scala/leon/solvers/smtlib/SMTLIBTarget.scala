@@ -34,9 +34,12 @@ trait SMTLIBTarget {
   val reporter = context.reporter
 
   def targetName: String
-  def getNewInterpreter(): SMTInterpreter
 
-  val interpreter = getNewInterpreter()
+  def interpreterOps(ctx: LeonContext): Seq[String]
+
+  def getNewInterpreter(ctx: LeonContext): SMTInterpreter
+
+  val interpreter = getNewInterpreter(context)
 
   var out: java.io.FileWriter = _
 
@@ -164,8 +167,9 @@ trait SMTLIBTarget {
       // We expect a RawArrayValue with keys in from and values in Option[to],
       // with default value == None
       require(from == r.keyTpe && r.default == OptionManager.mkLeonNone(to))
-      val elems = r.elems.mapValues {
-        case CaseClass(leonSome, Seq(x)) => x
+      val elems = r.elems.flatMap {
+        case (k, CaseClass(leonSome, Seq(x))) => Some(k -> x)
+        case (k, _) => None
       }.toSeq
       finiteMap(elems, from, to)
 
@@ -693,25 +697,29 @@ trait SMTLIBTarget {
     case CheckSatStatus(SatStatus)     => Some(true)
     case CheckSatStatus(UnsatStatus)   => Some(false)
     case CheckSatStatus(UnknownStatus) => None
-    case _                             => None
+    case e                             => None
   }
 
   override def getModel: Map[Identifier, Expr] = {
     val syms = variables.bSet.toList
-    val cmd: Command = 
-      GetValue(syms.head, 
-               syms.tail.map(s => QualifiedIdentifier(SMTIdentifier(s)))
-              )
+    if (syms.isEmpty) {
+      Map()
+    } else {
+      val cmd: Command = 
+        GetValue(syms.head, 
+                 syms.tail.map(s => QualifiedIdentifier(SMTIdentifier(s)))
+                )
 
 
-    val GetValueResponseSuccess(valuationPairs) = sendCommand(cmd)
+      val GetValueResponseSuccess(valuationPairs) = sendCommand(cmd)
 
-    valuationPairs.collect {
-      case (SimpleSymbol(sym), value) if variables.containsB(sym) =>
-        val id = variables.toA(sym)
+      valuationPairs.collect {
+        case (SimpleSymbol(sym), value) if variables.containsB(sym) =>
+          val id = variables.toA(sym)
 
-        (id, fromSMT(value, id.getType)(Map(), Map()))
-    }.toMap
+          (id, fromSMT(value, id.getType)(Map(), Map()))
+      }.toMap
+    }
   }
 
   override def push(): Unit = {

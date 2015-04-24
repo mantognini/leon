@@ -14,8 +14,8 @@ case class PrinterOptions (
 
 object PrinterOptions {
   def fromContext(ctx: LeonContext): PrinterOptions = {
-    val debugTrees     = ctx.settings.debugSections contains DebugSectionTrees
-    val debugPositions = ctx.settings.debugSections contains DebugSectionPositions
+    val debugTrees     = ctx.findOptionOrDefault(SharedOptions.optDebug) contains DebugSectionTrees
+    val debugPositions = ctx.findOptionOrDefault(SharedOptions.optDebug) contains DebugSectionPositions
 
     PrinterOptions(
       baseIndent     = 0,
