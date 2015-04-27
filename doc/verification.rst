@@ -1,3 +1,5 @@
+.. _verification:
+
 Verification
 ============
 
@@ -139,19 +141,89 @@ to prove the following theorem:
 
    \forall x. \mbox{pc}(x) \implies \mbox{prec}(\mbox{e}(x))
 
+Leon will generates one such theorem for each static call site of a function with
+a precondition.
+
+.. note::
+    
+   Leon only assumes an open program model, where any function could be called from
+   outside of the given program. In particular, Leon will not derive a precondition
+   to a function based on known information in the context of the calls, such as
+   knowing that the function is always given positive parameters. Any information needed
+   to prove the postcondition will have to be provide as part of the precondition
+   of a function.
 
 Loop invariants
 ***************
 
+Leon supports annotations for loop invariants in :ref:`XLang <xlang>`. To
+simplify the presentation we will assume a single variable :math:`x` is in
+scope, but the definitions generalize to any number of variables. Given the
+following program:
+
+.. code-block:: scala
+
+   (while(cond) {
+     body
+   }) invariant(inv)
+    
+where the boolean expression :math:`\mbox{cond}(x)` is over the free variable
+:math:`x` and the expression :math:`\mbox{body}(x, x')` relates the value of
+:math:`x` when entering the loop to its updated value :math:`x'` on loop exit.
+The expression :math:`\mbox{inv}(x)` is a boolean formula over the free
+variable :math:`x`.
+
+A loop invariant must hold:
+  (1) when the program enters the loop initially
+  (2) after each completion of the body
+  (3) right after exiting the loop (when the condition turns false)
+
+Leon will prove point (1) and (2) above. Together, and by induction, they imply
+that point (3) holds as well.
 
 Array access safety
 *******************
 
+Leon generates verification conditions for the safety of array accesses. For
+each array variable, Leon carries along a symbolic information on its length.
+This information is used to prove that each expression used as an index in the
+array is strictly smaller than that length. The expression is also checked to
+be positive.
 
 Pattern matching exhaustiveness
 *******************************
 
+Leon verifies that pattern matching is exhaustive. The regular Scala compiler
+only considers the types of expression involved in pattern matching, but Leon
+will consider information such as precondition to formally prove the
+exhaustiveness of pattern matching.
 
+As an example, the following code should issue a warning with Scala:
+
+.. code-block:: scala
+
+   abstract class List
+   case class Cons(head: Int, tail: List) extends List
+   case object Nil extends List
+
+   def getHead(l: List): Int = {
+     require(!l.isInstanceOf[Nil])
+     l match {
+       case Cons(x, _) => x
+     }
+   }
+
+But Leon will actually prove that the pattern matching is actually exhaustive,
+relying on the given precondition.
 
 Proving mathematical theorems with Leon
 ---------------------------------------
+
+As we have seen, verifying the contract of a function is really proving a mathematical
+theorem. In some sense, Leon can be seen as a (mostly) automated theorem prover. It is
+automated in the sense that once the property stated, Leon will proceed with searching
+for a proof without any user interaction. In practice however, many theorems will be fairly
+difficult to prove, and it is possible for the user to provide hints to Leon. 
+  
+Hints typically take the form of simpler properties that combine in order to prove
+more complicated ones.

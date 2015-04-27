@@ -15,12 +15,15 @@ Contents:
    gettingstarted
    installation
    tutorial
+   faq
    purescala
    library
    xlang
    verification
+   limitations
    synthesis
    repair
+   options
    references
 
 
