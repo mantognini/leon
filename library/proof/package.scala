@@ -19,10 +19,15 @@ package object proof {
     proof && prop
 
   case class EqReasoning[A](x: A, prop: Boolean) {
-    def ==|(proof: Boolean): EqReasoning[A] = EqReasoning(x, prop && proof)
+    def ==|(proof: Boolean): EqReasoning[A] = {
+      require(proof)
+      EqReasoning(x, prop)
+    }
 
-    def |(that: EqReasoning[A]): EqReasoning[A] =
-      EqReasoning(that.x, this.prop && (this.x == that.x) && that.prop)
+    def |(that: EqReasoning[A]): EqReasoning[A] = {
+      require(this.x == that.x)
+      EqReasoning(that.x, this.prop && that.prop)
+    }
 
     def qed: Boolean = prop
   }
