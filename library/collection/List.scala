@@ -580,6 +580,78 @@ object ListSpecs {
     }
   }.holds
 
+  /* This doesn't verify. */
+  def folds3[A, B](
+    xs: List[A], z: B, fl: (B, A) => B, fr: (A, B) => B): Boolean = {
+
+    /* Additional hyp. */
+    require {
+      forall((x: A, z: B) => fl(z, x) == fr(x, z))
+    }
+
+    xs.foldLeft(z)(fl) == xs.reverse.foldRight(fr)(z) because {
+      xs match {
+        case Nil() => true
+        case Cons(x, xs) => {
+          (x :: xs).foldLeft(z)(fl)    ==| trivial                      |
+          xs.foldLeft(fl(z, x))(fl)    ==| folds3(xs, fl(z, x), fl, fr) |
+          xs.reverse.foldRight(fr)(fl(z, x))   ==| trivial /* hyp. */   |
+          xs.reverse.foldRight(fr)(fr(x, z))   ==|
+            snocFoldRight(xs, x, z, fr)                                 |
+          (xs.reverse :+ x).foldRight(fr)(z)   ==| trivial              |
+          (x :: xs).reverse.foldRight(fr)(z)
+        }.qed
+      }
+    }
+  }.holds
+
+  def folds2[A, B](
+    xs: List[A], z: B, fl: (B, A) => B, fr: (A, B) => B): Boolean = {
+
+    /* Additional hyp. */
+    require {
+      forall((x: A, z: B) => fl(z, x) == fr(x, z))
+    }
+
+    /*xs.foldLeft(z)(fl) == xs.reverse.foldRight(fr)(z) because */ {
+      xs match {
+        case Nil() => true
+        case Cons(x, xs) => {
+//          (x :: xs).foldLeft(z)(fl) == xs.foldLeft(fl(z, x))(fl) &&
+//          folds2(xs, fl(z, x), fl, fr) &&
+        {
+//          xs.reverse.foldRight(fr)(fl(z, x))   ==| trivial /* hyp. */  |
+          xs.reverse.foldRight(fr)(fr(x, z))   ==|
+            snocFoldRight(xs.reverse, x, z, fr)                        |
+          (xs.reverse :+ x).foldRight(fr)(z)   ==| trivial             |
+          (x :: xs).reverse.foldRight(fr)(z)
+        }.qed }
+        /* {
+          (x :: xs).foldLeft(z)(fl)    ==| trivial                     |
+          xs.foldLeft(fl(z, x))(fl)    ==| folds2(xs, fl(z, x), fl, fr) |
+          xs.reverse.foldRight(fr)(fl(z, x))   ==| trivial /* hyp. */  |
+          xs.reverse.foldRight(fr)(fr(x, z))   ==|
+            snocFoldRight(xs, x, z, fr)                                |
+          (xs.reverse :+ x).foldRight(fr)(z)   ==| trivial             |
+          (x :: xs).reverse.foldRight(fr)(z)
+        }.qed */
+      }
+    }
+  }.holds
+
+  /* A minimized version of fold3 that still doesn't verify. */
+  def foo2[A, B](
+    xs: List[A], x: A, z: B, fl: (B, A) => B, fr: (A, B) => B): Boolean = {
+
+    /* Additional hyp. */
+    require {
+      forall((x: A, z: B) => fl(z, x) == fr(x, z))
+    }
+
+    (xs.foldRight(fr)(fr(x, z)) == (xs :+ x).foldRight(fr)(z)) &&
+    snocFoldRight(xs, x, z, fr)
+  }.holds
+
   def scanVsFoldLeft[A, B](l : List[A], z: B, f: (B, A) => B): Boolean = {
     l.scanLeft(z)(f).last == l.foldLeft(z)(f) because {
       l match {
