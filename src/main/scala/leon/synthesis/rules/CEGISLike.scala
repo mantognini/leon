@@ -194,7 +194,7 @@ abstract class CEGISLike[T <% Typed](name: String) extends Rule(name) {
 
       private def computeCExpr(): Expr = {
 
-        val lets = (for ((c, alts) <- cTree) yield {
+        val lets = for ((c, alts) <- cTree) yield {
           val activeAlts = alts.filter(a => isBActive(a._1))
 
           val expr = activeAlts.foldLeft(simplestValue(c.getType): Expr) {
@@ -202,7 +202,7 @@ abstract class CEGISLike[T <% Typed](name: String) extends Rule(name) {
           }
 
           (c, expr)
-        })
+        }
 
         // We order the lets base don dependencies
         def defFor(c: Identifier): Expr = {
@@ -392,7 +392,7 @@ abstract class CEGISLike[T <% Typed](name: String) extends Rule(name) {
             val cnstr = and(p.pc, letTuple(p.xs, sol, Not(p.phi)))
             //println("Solving for: "+cnstr)
 
-            val solver = (new FairZ3Solver(ctx, prog) with TimeoutSolver).setTimeout(cexSolverTo)
+            val solver = SolverFactory.default(ctx, prog).withTimeout(cexSolverTo).getNewSolver()
             try {
               solver.assertCnstr(cnstr)
               solver.check match {
@@ -575,9 +575,6 @@ abstract class CEGISLike[T <% Typed](name: String) extends Rule(name) {
 
         closedBs = Map[Identifier, Set[Identifier]]()
 
-        // Set of Cs that still have no active alternatives after unfolding
-        var postClosedCs = Set[Identifier]()
-
         for (c <- unfoldBehind) {
           var alts = grammar.getProductions(labels(c))
 
@@ -661,7 +658,7 @@ abstract class CEGISLike[T <% Typed](name: String) extends Rule(name) {
       }
 
       def solveForTentativeProgram(): Option[Option[Set[Identifier]]] = {
-        val solver  = (new FairZ3Solver(ctx, programCTree) with TimeoutSolver).setTimeout(exSolverTo)
+        val solver = SolverFactory.default(ctx, programCTree).withTimeout(exSolverTo).getNewSolver()
         val cnstr = FunctionInvocation(phiFd.typed, phiFd.params.map(_.id.toVariable))
         //debugCExpr(cTree)
 
@@ -738,7 +735,7 @@ abstract class CEGISLike[T <% Typed](name: String) extends Rule(name) {
       }
 
       def solveForCounterExample(bs: Set[Identifier]): Option[Option[Seq[Expr]]] = {
-        val solver = (new FairZ3Solver(ctx, programCTree) with TimeoutSolver).setTimeout(cexSolverTo)
+        val solver = SolverFactory.default(ctx, programCTree).withTimeout(cexSolverTo).getNewSolver()
         val cnstr = FunctionInvocation(phiFd.typed, phiFd.params.map(_.id.toVariable))
 
         val fixedBs = finiteArray(bsOrdered.map(b => BooleanLiteral(bs(b))), None, BooleanType)

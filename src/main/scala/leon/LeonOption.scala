@@ -42,10 +42,9 @@ abstract class LeonOptionDef[+A] {
 }
 
 case class LeonFlagOptionDef(name: String, description: String, default: Boolean) extends LeonOptionDef[Boolean] {
-  val parser = booleanParser(default)
+  val parser = booleanParser
   val usageRhs = ""
 }
-
 
 case class LeonStringOptionDef(name: String, description: String, default: String, usageRhs: String) extends LeonOptionDef[String] {
   val parser = stringParser
@@ -78,7 +77,7 @@ object OptionParsers {
 
   val longParser: OptionParser[Long] = _.toLong
   val stringParser: OptionParser[String] = x => x
-  def booleanParser(default: Boolean): OptionParser[Boolean] = {
+  def booleanParser: OptionParser[Boolean] = {
     case "on"  | "true"  | "yes" | "" => true
     case "off" | "false" | "no"       => false
     case _  => throw new IllegalArgumentException
@@ -101,7 +100,7 @@ object OptionsHelpers {
   def nameValue(s: String) = s match {
     case matcher(name, value) => (name, value)
     case matcherWithout(name) => (name, "")
-    case _ => sys.error("") // FIXME
+    case _ => throw new IllegalArgumentException
   }
 
   // helper for options that include patterns

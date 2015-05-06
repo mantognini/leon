@@ -12,6 +12,7 @@ This tutorial shows how to:
   * use sets and recursive function to specify data structures
   * synthesize insertion into a sorted list
   * synthesize sorting on lists
+  * repair an incorrect function
 
 We assume that the user is using the web interface. The
 functionality is also available (possibly with less
@@ -296,10 +297,12 @@ specification, such as, for, example:
 
 .. code-block:: scala
 
-    def sort2(x : BigInt, y : BigInt) = choose{(res: (BigInt,BigInt)) =>
-      if (x < y) x
-      else y
-    }
+  def sort2(x : BigInt, y : BigInt): (BigInt, BigInt) = {
+    if (x < y)
+      (x, y)
+    else
+      (y, x)
+  }
 
 Depending on the particular run, Leon may also produce a solution such as
 
@@ -349,7 +352,8 @@ In contrast, if we define the corresponding specification for three integers
 .. code-block:: scala
 
   def sort3spec(x: BigInt, y: BigInt, z: BigInt, res: (BigInt, BigInt, BigInt)): Boolean = {
-    Set(x,y,z) == Set(res._1, res._2, res._3) && res._1 <= res._2 && res._2 <= res._3
+    Set(x,y,z) == Set(res._1, res._2, res._3) && 
+    res._1 <= res._2 && res._2 <= res._3
   }
 
 Then uniqueness of the solution is the following conjecture:
@@ -428,7 +432,23 @@ As the starting point, we define size of a list.
         case Cons(x, rest) => 1 + size(rest)
     })
 
-We can add a specification that the size is non-negative.
+The definition uses *pattern matching* to define size of the
+list in the case it is empty (where it is zero) and when it
+is non-empty, or, if its non-empty, then it has a head `x`
+and the rest of the list `rest`, so the size is one plus the
+size of the rest. Thus `size` is a recursive function.  A
+strength of Leon is that it allows using such recursive
+functions in specifications.
+
+It makes little sense to try to write a complete
+specification of `size`, given that its recursive definition
+is already a pretty clear description of its
+meaning. However, it is useful to add a consequence of this
+definition, namely that the size is non-negative. The reason
+is that Leon most of the time reasons by unfolding `size`,
+and the property of size being non-negative is not revealed
+by such unfolding. Once specified, the non-negativity is
+easily proven and Leon will make use of it.
 
 .. code-block:: scala
 
@@ -458,6 +478,9 @@ order.
 Insertion into Sorted List
 --------------------------
 
+Consider the following specification of insertion into a sorted list,
+which is a building block for an insertion sort.
+
 .. code-block:: scala
 
   def sInsert(x : BigInt, l : List) : List = {
@@ -470,10 +493,16 @@ Insertion into Sorted List
     }
   } ensuring {(res:List) => isSorted(res)}
 
+Leon verifies that the returned list is indeed sorted. Note
+how we are again using a recursively defined function to
+specify another function. We can introduce a bug into the
+definition above and examine the counterexamples that Leon
+finds.
+
 Being Sorted is Not Enough
 --------------------------
 
-A function such as this one is correct.
+Note, however, that a function such as this one is also correct.
 
 .. code-block:: scala
 
@@ -482,7 +511,8 @@ A function such as this one is correct.
       Nil
     } ensuring {(res:List) => isSorted(res)}
 
-So, our specification may be considered weak.
+So, our specification may be considered weak, because it does
+not say anything about the elements.
 
 Using Size in Specification
 ---------------------------
@@ -495,7 +525,7 @@ Consider a stronger additional postcondition property:
 
 Does it hold? If we try to add it, we obtain a counterexample.
 A correct strengthening, taking into account that the element
-may or may not already be in the list, is:
+may or may not already be in the list, is the following.
 
 .. code-block:: scala
 
@@ -520,8 +550,9 @@ of the list.
   } ensuring {(res:List) => 
      isSorted(res) && content(res) == content(l) ++ Set(x)}
 
-To compute content, in this example we use sets, even though
-it might be better in general to use multisets.
+To compute `content`, in this example we use sets (even
+though in general it might be better in general to use bags
+i.e. multisets).
 
 .. code-block:: scala
 
@@ -534,25 +565,28 @@ it might be better in general to use multisets.
 Sorting Specification and Running It
 ------------------------------------
 
+Specifying sorting is in fact very easy.
+
 .. code-block:: scala
 
-  def sortMagic(l : List) = choose{(res:List) => 
-    isSorted(res) && content(res) == content(l)
-  }
+  def sortMagic(l : List) = {
+     ???[List]
+  } ensuring((res:List) => 
+    isSorted(res) && content(res) == content(l))
 
-We can execute it.
+We can execute such a sort.
 
 .. code-block:: scala
 
   def mm = sortMagic(Cons(20, Cons(5, Cons(50, Cons(2, Nil)))))
 
 obtaining the expected `Cons(2, Cons(5, Cons(20, Cons(50, Nil))))`.
-
+Note that the function actually removes duplicates from the input list.
 
 Synthesizing Sort
 -----------------
 
-By asking the system to synthesize the `choose` construct,
+By asking the system to synthesize the `choose` construct inside `magicSort`,
 we may obtain a function such as the following, which gives
 us the natural insertion sort.
 
@@ -569,15 +603,64 @@ us the natural insertion sort.
 Going back and Synthesizing Insertion
 -------------------------------------
 
-In fact, if we had a precise enough specification of insert,
-we could have synthesized it from the specification.
+In fact, if we have a reasonably precise enough
+specification of insert, we can synthesize the implementation.
+To try this, remove the body of `sInsert` and replace it
+with `???[List]` denoting an unknown value of the given type.
 
 .. code-block:: scala
 
-  def insertMagic(x: BigInt, l: List): List = {
+  def sInsert(x : BigInt, l : List) : List = {
     require(isSorted(l))
-    choose {(res: List) => 
-      isSorted(res) && content(res) == content(l) ++ Set[BigInt](x)
-    }
-  }
+    ???[List]
+  } ensuring {(res:List) => 
+     isSorted(res) && content(res) == content(l) ++ Set(x)}
 
+Leon can then synthesize the missing part, resulting in a similar
+body to the one we wrote by hand originally.
+
+Repairing an Incorrect Function
+-------------------------------
+
+You may notice that synthesis can take a long time and fail.
+Often we do produce some version of the program, but it is
+not correct according to a specification.  Consider the
+following attempt at `sInsert`.
+
+.. code-block:: scala
+
+  def sInsert(x : BigInt, l : List) : List = {
+    require(isSorted(l))
+    l match {
+      case Nil => Cons(x, Nil)
+      case Cons(e, rest) => Cons(e, sInsert(x,rest))
+    }
+  } ensuring {(res:List) => 
+     isSorted(res) && content(res) == content(l) ++ Set(x)}
+
+Leon reports a counterexample to the correctness. Instead of
+trying to manually understand the counterexample, we can
+instruct the system to **repair** this solution. If Leon can
+reuse parts of the existing function, it can be much faster
+than doing synthesis from scratch. Leon automatically finds
+test inputs that it uses to localize the error and preserve
+useful existing pieces of code. In this case, Leon repairs
+the above function into the one equivalent to the original
+one, by doing a case split and synthesizing two new cases,
+resulting in the following equivalent function.
+
+.. code-block:: scala
+
+  def sInsert(x : BigInt, l : List): List = {
+    require(isSorted(l))
+    l match {
+    case Nil => Cons(x, Nil)
+    case Cons(e, rest) =>
+      if (x < e) Cons(x, l)
+      else if (x == e) Cons(x, rest)
+      else Cons(e, sInsert(x, rest))
+  } ensuring { (res : List) => 
+    isSorted(res) && content(res) == content(l) ++ Set[BigInt](x) }
+
+
+This completes the tutorial. To learn more, check the rest of this documentation and browse the examples provided with Leon.

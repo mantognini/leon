@@ -20,8 +20,6 @@ import _root_.smtlib.parser.Commands.{Constructor => SMTConstructor, FunDef => _
 import _root_.smtlib.parser.Terms.{
   Identifier => SMTIdentifier,
   Let => SMTLet,
-  ForAll => SMTForall,
-  Exists => SMTExists,
   _
 }
 import _root_.smtlib.parser.CommandsResponses.{Error => ErrorResponse, _}
@@ -59,12 +57,13 @@ trait SMTLIBTarget {
   def id2sym(id: Identifier): SSymbol = SSymbol(id.name+"!"+id.globalId)
 
   // metadata for CC, and variables
-  val constructors = new IncrementalBijection[TypeTree, SSymbol]()
-  val selectors    = new IncrementalBijection[(TypeTree, Int), SSymbol]()
-  val testers      = new IncrementalBijection[TypeTree, SSymbol]()
-  val variables    = new IncrementalBijection[Identifier, SSymbol]()
-  val sorts        = new IncrementalBijection[TypeTree, Sort]()
-  val functions    = new IncrementalBijection[TypedFunDef, SSymbol]()
+  val constructors  = new IncrementalBijection[TypeTree, SSymbol]()
+  val selectors     = new IncrementalBijection[(TypeTree, Int), SSymbol]()
+  val testers       = new IncrementalBijection[TypeTree, SSymbol]()
+  val variables     = new IncrementalBijection[Identifier, SSymbol]()
+  val genericValues = new IncrementalBijection[GenericValue, SSymbol]()
+  val sorts         = new IncrementalBijection[TypeTree, Sort]()
+  val functions     = new IncrementalBijection[TypedFunDef, SSymbol]()
 
   protected object OptionManager {
     lazy val leonOption = program.library.Option.get
@@ -153,7 +152,8 @@ trait SMTLIBTarget {
 
   def fromRawArray(r: RawArrayValue, tpe: TypeTree): Expr = tpe match {
     case SetType(base) =>
-      require(r.default == BooleanLiteral(false) && r.keyTpe == base)
+      require(r.default == BooleanLiteral(false), "Co-finite sets are not supported.")
+      require(r.keyTpe == base, s"Type error in solver model, expected $base, found ${r.keyTpe}")
 
       finiteSet(r.elems.keySet, base)
 
@@ -507,6 +507,19 @@ trait SMTLIBTarget {
           someTester(vt),
           Seq(ArraysEx.Select(toSMT(m), toSMT(k)))
         )
+
+      case p : Passes =>
+        toSMT(matchToIfThenElse(p.asConstraint))
+
+      case m : MatchExpr =>
+        toSMT(matchToIfThenElse(m))
+
+
+      case gv @ GenericValue(tpe, n) =>
+        genericValues.cachedB(gv) {
+          declareVariable(FreshIdentifier("gv"+n, tpe))
+        }
+
       /**
        * ===== Everything else =====
        */
@@ -577,8 +590,8 @@ trait SMTLIBTarget {
           case _ => reporter.fatalError("Unhandled nary "+e)
         }
 
-
-      case o => unsupported("Tree: " + o)
+      case o =>
+        unsupported("Tree: " + o)
     }
   }
 
@@ -727,6 +740,7 @@ trait SMTLIBTarget {
     selectors.push()
     testers.push()
     variables.push()
+    genericValues.push()
     sorts.push()
     functions.push()
 
@@ -740,6 +754,7 @@ trait SMTLIBTarget {
     selectors.pop()
     testers.pop()
     variables.pop()
+    genericValues.pop()
     sorts.pop()
     functions.pop()
 

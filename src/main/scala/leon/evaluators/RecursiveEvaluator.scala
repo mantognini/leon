@@ -11,7 +11,6 @@ import purescala.Types._
 import purescala.Constructors._
 import purescala.Extractors._
 
-import xlang.Expressions._
 import solvers.SolverFactory
 import synthesis.ConvertHoles.convertHoles
 
@@ -110,7 +109,6 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
     case en@Ensuring(body, post) =>
       if ( exists{
         case Hole(_,_) => true
-        case Gives(_,_) => true
         case _ => false
       }(en)) 
         e(convertHoles(en, ctx, true))
@@ -437,7 +435,7 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
       replaceFromIDs(mapping, l)
 
     case ArrayLength(a) =>
-      var FiniteArray(elems, default, IntLiteral(length)) = e(a)
+      val FiniteArray(_, _, IntLiteral(length)) = e(a)
       IntLiteral(length)
 
     case ArrayUpdated(a, i, v) =>
@@ -452,7 +450,7 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
 
     case ArraySelect(a, i) =>
       val IntLiteral(index) = e(i)
-      val FiniteArray(elems, default, length) = e(a)
+      val FiniteArray(elems, default, _) = e(a)
       try {
         elems.get(index).orElse(default).get
       } catch {
@@ -494,8 +492,6 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
     case gv: GenericValue =>
       gv
 
-    case g : Gives =>
-      e(convertHoles(g, ctx, true)) 
   
     case p : Passes => 
       e(p.asConstraint)
@@ -504,7 +500,6 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
       e(impl)
 
     case choose @ Choose(_, None) =>
-      import purescala.ExprOps.simplestValue
 
       implicit val debugSection = utils.DebugSectionSynthesis
 
@@ -514,9 +509,7 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
 
       val ins = p.as.map(rctx.mappings(_))
 
-      if (clpCache contains (choose, ins)) {
-        clpCache((choose, ins))
-      } else {
+      clpCache.getOrElse((choose, ins), {
         val tStart = System.currentTimeMillis
 
         val solver = SolverFactory.getFromSettings(ctx, program).getNewSolver()
@@ -553,7 +546,7 @@ abstract class RecursiveEvaluator(ctx: LeonContext, prog: Program, maxSteps: Int
         } finally {
           solver.free()
         }
-      }
+      })
 
     case MatchExpr(scrut, cases) =>
       val rscrut = e(scrut)
