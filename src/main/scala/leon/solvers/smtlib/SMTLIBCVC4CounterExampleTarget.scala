@@ -15,9 +15,12 @@ import smtlib.parser.Terms._
 trait SMTLIBCVC4CounterExampleTarget extends SMTLIBCVC4QuantifiedTarget {
   this: SMTLIBSolver =>
 
+  override val targetName = "cvc4-cex"
+
   override def interpreterOps(ctx: LeonContext) = {
     Seq(
       "-q",
+      "--produce-models",
       "--print-success",
       "--lang", "smt",
       "--fmf-fun"
