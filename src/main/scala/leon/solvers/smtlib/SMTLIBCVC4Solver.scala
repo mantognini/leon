@@ -4,8 +4,10 @@ package leon
 package solvers
 package smtlib
 
-import leon.OptionParsers._
+import OptionParsers._
+
 import purescala._
+import Definitions.Program
 import Common._
 import Expressions.{Assert => _, _}
 import Extractors._
@@ -17,8 +19,7 @@ import _root_.smtlib.parser.Commands._
 import _root_.smtlib.interpreters.CVC4Interpreter
 import _root_.smtlib.theories._
 
-trait SMTLIBCVC4Target extends SMTLIBTarget {
-  this: SMTLIBSolver =>
+class SMTLIBCVC4Solver(context: LeonContext, program: Program) extends SMTLIBSolver(context, program) {
 
   def targetName = "cvc4"
 
@@ -32,6 +33,7 @@ trait SMTLIBCVC4Target extends SMTLIBTarget {
       "--produce-models",
       "--no-incremental",
       "--tear-down-incremental",
+      "--rewrite-divk",
 //      "--dt-rewrite-error-sel", // Removing since it causes CVC4 to segfault on some inputs
       "--print-success",
       "--lang", "smt"
@@ -58,7 +60,7 @@ trait SMTLIBCVC4Target extends SMTLIBTarget {
           Sort(SMTIdentifier(SSymbol("Set")), Seq(declareSort(base)))
 
         case _ =>
-          super[SMTLIBTarget].declareSort(t)
+          super.declareSort(t)
       }
     }
   }
@@ -108,7 +110,7 @@ trait SMTLIBCVC4Target extends SMTLIBTarget {
       RawArrayValue(k, Map(), fromSMT(elem, v))
 
     case _ =>
-      super[SMTLIBTarget].fromSMT(s, tpe)
+      super.fromSMT(s, tpe)
   }
 
   override def toSMT(e: Expr)(implicit bindings: Map[Identifier, Term]) = e match {
@@ -181,7 +183,7 @@ trait SMTLIBCVC4Target extends SMTLIBTarget {
       FunctionApplication(SSymbol("intersection"), Seq(toSMT(a), toSMT(b)))
 
     case _ =>
-      super[SMTLIBTarget].toSMT(e)
+      super.toSMT(e)
   }
 }
 

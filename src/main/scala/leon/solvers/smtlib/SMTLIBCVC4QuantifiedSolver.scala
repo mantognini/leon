@@ -3,20 +3,20 @@
 package leon
 package solvers.smtlib
 
-import purescala.Common.FreshIdentifier
-import leon.purescala.Expressions._
-import purescala.Definitions.TypedFunDef
-import purescala.Constructors.{application, implies}
-import purescala.DefOps.typedTransitiveCallees
-import smtlib.parser.Commands.Assert
-import smtlib.parser.Commands._
+import purescala._
+import Expressions._
+import Definitions.{Program, TypedFunDef}
+import Constructors.{application, implies}
+import DefOps.typedTransitiveCallees
+import smtlib.parser.Commands.{Assert => SMTAssert, _}
 import smtlib.parser.Terms._
 import smtlib.theories.Core.Equals
 
-trait SMTLIBCVC4QuantifiedTarget extends SMTLIBCVC4Target {
-  this: SMTLIBSolver =>
+// This solver utilizes the define-funs-rec command of SMTLIB-2.5 to define mutually recursive functions.
+// It is not meant as an underlying solver to UnrollingSolver, and does not handle HOFs.
+abstract class SMTLIBCVC4QuantifiedSolver(context: LeonContext, program: Program) extends SMTLIBCVC4Solver(context, program) {
 
-  override val targetName = "cvc4-quantified"
+  override def targetName = "cvc4-quantified"
 
   private val typedFunDefExplorationLimit = 10000
 
@@ -33,27 +33,17 @@ trait SMTLIBCVC4QuantifiedTarget extends SMTLIBCVC4Target {
     val (withParams, withoutParams) = funs.toSeq partition( _.params.nonEmpty)
 
     val parameterlessAssertions = withoutParams filterNot functions.containsA flatMap { tfd =>
-      // FIXME: Here we actually want to call super[SMTLIBCVC4Target].declareFunction(tfd),
-      // but we inline it to work around a freakish compiler bug
-      val id = if (tfd.tps.isEmpty) {
-        tfd.id
-      } else {
-        FreshIdentifier(tfd.id.name)
-      }
-      sendCommand(DeclareFun(id2sym(id), Seq(), declareSort(tfd.returnType)))
-      // Until here, that is.
-
-      functions +=(tfd, id2sym(id))
+      val s = super.declareFunction(tfd)
 
       try {
-        val bodyAssert = Assert(Equals(id2sym(id): Term, toSMT(tfd.body.get)(Map())))
+        val bodyAssert = SMTAssert(Equals(s: Term, toSMT(tfd.body.get)(Map())))
 
         val specAssert = tfd.postcondition map { post =>
           val term = implies(
             tfd.precondition getOrElse BooleanLiteral(true),
             application(post, Seq(FunctionInvocation(tfd, Seq())))
           )
-          Assert(toSMT(term)(Map()))
+          SMTAssert(toSMT(term)(Map()))
         }
 
         Seq(bodyAssert) ++ specAssert
@@ -105,7 +95,12 @@ trait SMTLIBCVC4QuantifiedTarget extends SMTLIBCVC4Target {
           tfd.precondition getOrElse BooleanLiteral(true),
           application(post, Seq(FunctionInvocation(tfd, tfd.params map { _.toVariable})))
         )
-        sendCommand(Assert(quantifiedTerm(ForAll, term)))
+        try {
+          sendCommand(SMTAssert(quantifiedTerm(ForAll, term)))
+        } catch {
+          case _ : IllegalArgumentException =>
+            addError()
+        }
       }
     }
 
@@ -117,6 +112,11 @@ trait SMTLIBCVC4QuantifiedTarget extends SMTLIBCVC4Target {
 
   // For this solver, we prefer the variables of assert() commands to be exist. quantified instead of free
   override def assertCnstr(expr: Expr) =
-    sendCommand(Assert(quantifiedTerm(Exists, expr)))
+    try {
+      sendCommand(SMTAssert(quantifiedTerm(Exists, expr)))
+    } catch {
+      case _ : IllegalArgumentException =>
+        addError()
+    }
 
 }

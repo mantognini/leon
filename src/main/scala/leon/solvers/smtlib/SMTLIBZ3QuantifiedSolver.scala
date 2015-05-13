@@ -1,20 +1,19 @@
-package leon.solvers.smtlib
+package leon
+package solvers.smtlib
 
-import leon.purescala.DefOps._
-import leon.purescala.Definitions.TypedFunDef
-import leon.purescala.ExprOps._
-import leon.purescala.Expressions._
-import leon.purescala.Constructors._
-import smtlib.parser.Commands.{DeclareFun, Assert}
+import purescala._
+import DefOps._
+import Definitions._
+import Expressions._
+import Constructors._
+import smtlib.parser.Commands.{Assert => SMTAssert}
 import smtlib.parser.Terms.{ForAll => SMTForall, SSymbol}
 
 /**
  * This solver models function definitions as universally quantified formulas.
- * It is not meant as an underlying solver to UnrollingSolver.
+ * It is not meant as an underlying solver to UnrollingSolver, and does not handle HOFs.
  */
-trait SMTLIBZ3QuantifiedTarget extends SMTLIBZ3Target {
-
-  this: SMTLIBSolver =>
+class SMTLIBZ3QuantifiedSolver(context: LeonContext, program: Program) extends SMTLIBZ3Solver(context, program) {
 
   private val typedFunDefExplorationLimit = 10000
 
@@ -31,19 +30,7 @@ trait SMTLIBZ3QuantifiedTarget extends SMTLIBZ3Target {
 
     val smtFunDecls = funs.toSeq.collect {
       case tfd if !functions.containsA(tfd) =>
-        val id = if (tfd.tps.isEmpty) {
-          tfd.id
-        } else {
-          tfd.id.freshen
-        }
-        val sym = id2sym(id)
-        functions +=(tfd, sym)
-        sendCommand(DeclareFun(
-          sym,
-          tfd.params map { p => declareSort(p.getType) },
-          declareSort(tfd.returnType)
-        ))
-        sym
+        super.declareFunction(tfd)
     }
     smtFunDecls foreach { sym =>
       val tfd = functions.toA(sym)
@@ -55,7 +42,7 @@ trait SMTLIBZ3QuantifiedTarget extends SMTLIBZ3Target {
           tfd.body.get
         )
       )
-      sendCommand(Assert(term))
+      sendCommand(SMTAssert(term))
 
       tfd.postcondition foreach { post =>
         val axiom = implies(
@@ -65,7 +52,7 @@ trait SMTLIBZ3QuantifiedTarget extends SMTLIBZ3Target {
             Seq(FunctionInvocation(tfd, tfd.params map { _.toVariable }))
           )
         )
-        sendCommand(Assert(quantifiedTerm(SMTForall, axiom)))
+        sendCommand(SMTAssert(quantifiedTerm(SMTForall, axiom)))
       }
     }
 
