@@ -22,6 +22,8 @@ class CallGraph(p: Program) {
   def allTransitiveCalls = _transitiveCalls
 
   def isRecursive(f: FunDef) = transitivelyCalls(f, f)
+  def mutuallyRecursive(f1: FunDef, f2: FunDef) =
+    transitivelyCalls(f1, f2) && transitivelyCalls(f2, f1)
 
   def calls(from: FunDef, to: FunDef) = _calls contains (from -> to)
   def callers(to: FunDef)   = _callers.getOrElse(to, Set())

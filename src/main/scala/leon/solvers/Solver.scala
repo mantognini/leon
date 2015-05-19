@@ -7,7 +7,6 @@ import utils.DebugSectionSolver
 import purescala.Expressions.Expr
 import purescala.Common.Identifier
 
-
 trait Solver {
   def name: String
   val context: LeonContext
