@@ -469,26 +469,29 @@ object ListOps {
     case Cons(_, t) => isSorted(t)
   }
 
-  def sorted(ls: List[BigInt]): List[BigInt] = ls match {
-    case Cons(h, t) => insSort(sorted(t), h)
+  def sorted(ls: List[BigInt]): List[BigInt] = { ls match {
+    case Cons(h, t) => sortedIns(sorted(t), h)
     case Nil() => Nil()
-  }
+  }} ensuring { isSorted _ }
 
-  def insSort(ls: List[BigInt], v: BigInt): List[BigInt] = ls match {
-    case Nil() => Cons(v, Nil())
-    case Cons(h, t) =>
-      if (v <= h) {
-        Cons(v, t)
-      } else {
-        Cons(h, insSort(t, v))
-      }
-  }
+  private def sortedIns(ls: List[BigInt], v: BigInt): List[BigInt] = {
+    require(isSorted(ls))
+    ls match {
+      case Nil() => Cons(v, Nil())
+      case Cons(h, t) =>
+        if (v <= h) {
+          Cons(v, t)
+        } else {
+          Cons(h, sortedIns(t, v))
+        }
+    }
+  } ensuring { isSorted _ }
 }
 
 case class Cons[T](h: T, t: List[T]) extends List[T]
 case class Nil[T]() extends List[T]
 
-@library
+//@library
 object ListSpecs {
   def snocIndex[T](l : List[T], t : T, i : BigInt) : Boolean = {
     require(0 <= i && i < l.size + 1)
@@ -511,7 +514,7 @@ object ListSpecs {
   }.holds
 
   def snocLast[T](l: List[T], x: T): Boolean = {
-    (l :+ x).last == x because {
+    ((l :+ x).last == x) because {
       l match {
         case Nil() => true
         case Cons(y, ys) => {
@@ -526,7 +529,7 @@ object ListSpecs {
 
   def headReverseLast[T](l: List[T]): Boolean = {
     require (!l.isEmpty)
-    l.head == l.reverse.last because {
+    (l.head == l.reverse.last) because {
       l match {
         case Cons(x, xs) => {
           (x :: xs).head           ==| trivial                 |
@@ -540,63 +543,69 @@ object ListSpecs {
 
   def appendIndex[T](l1 : List[T], l2 : List[T], i : BigInt) : Boolean = {
     require(0 <= i && i < l1.size + l2.size)
-    (l1 match {
-      case Nil() => true
-      case Cons(x,xs) => if (i==BigInt(0)) true else appendIndex[T](xs,l2,i-1)
-    }) &&
-    ((l1 ++ l2).apply(i) == (if (i < l1.size) l1(i) else l2(i - l1.size)))
+    ( (l1 ++ l2).apply(i) == (if (i < l1.size) l1(i) else l2(i - l1.size)) ) because {
+      l1 match {
+        case Nil() => true
+        case Cons(x,xs) => 
+          (i != BigInt(0)) ==> appendIndex[T](xs,l2,i-1)
+      }
+    }
   }.holds
 
+  @induct
   def appendAssoc[T](l1 : List[T], l2 : List[T], l3 : List[T]) : Boolean = {
-    (l1 match {
-      case Nil() => true
-      case Cons(x,xs) => appendAssoc(xs,l2,l3)
-    }) &&
-    (((l1 ++ l2) ++ l3) == (l1 ++ (l2 ++ l3)))
+    (l1 ++ l2) ++ l3 == l1 ++ (l2 ++ l3)
   }.holds
 
   def rightIdAppend[T](l1 : List[T]) : Boolean = {
-    (l1 match {
-      case Nil() => true
-      case Cons(x, xs) => rightIdAppend(xs)
-    }) &&
-    ((l1 ++ Nil()) == l1)
+    (l1 ++ Nil() == l1) because {
+      l1 match {
+        case Nil() => true
+        case Cons(x, xs) => rightIdAppend(xs)
+      }
+    }
   }.holds
 
   def snocIsAppend[T](l : List[T], t : T) : Boolean = {
-    (l match {
-      case Nil() => true
-      case Cons(x,xs) =>  snocIsAppend(xs,t)
-    }) &&
-    ((l :+ t) == l ++ Cons[T](t, Nil()))
+    ( (l :+ t) == l ++ Cons[T](t, Nil()) ) because {
+      l match {
+        case Nil() => true
+        case Cons(x,xs) => snocIsAppend(xs,t)
+      }
+    }
   }.holds
 
   def snocAfterAppend[T](l1 : List[T], l2 : List[T], t : T) : Boolean = {
-    (l1 match {
-      case Nil() => true
-      case Cons(x,xs) =>  snocAfterAppend(xs,l2,t)
-    }) &&
-    ((l1 ++ l2) :+ t == (l1 ++ (l2 :+ t)))
+    ( (l1 ++ l2) :+ t == l1 ++ (l2 :+ t) ) because {
+      l1 match {
+        case Nil() => true
+        case Cons(x,xs) => snocAfterAppend(xs,l2,t)
+      }
+    }
   }.holds
 
   def snocReverse[T](l : List[T], t : T) : Boolean = {
-    (l match {
-      case Nil() => true
-      case Cons(x,xs) => snocReverse(xs,t)
-    }) &&
-    ((l :+ t).reverse == Cons(t, l.reverse))
+    ( (l :+ t).reverse == Cons(t, l.reverse) ) because {
+      l match {
+        case Nil() => true
+        case Cons(x,xs) => snocReverse(xs,t)
+      }
+    }
   }.holds
 
   def reverseReverse[T](l : List[T]) : Boolean = {
-    (l match {
-      case Nil() => true
-      case Cons(x,xs) => reverseReverse[T](xs) && snocReverse[T](xs.reverse, x)
-    }) &&
-    (l.reverse.reverse == l)
+    ( l.reverse.reverse == l ) because {
+      l match {
+        case Nil() => 
+          true
+        case Cons(x,xs) =>
+          reverseReverse[T](xs) && snocReverse[T](xs.reverse, x)
+      }
+    }
   }.holds
 
   def reverseAppend[T](l1 : List[T], l2 : List[T]) : Boolean = {
-    (l1 ++ l2).reverse == (l2.reverse ++ l1.reverse) because {
+    ( (l1 ++ l2).reverse == l2.reverse ++ l1.reverse ) because {
       l1 match {
         case Nil() => {
           (Nil() ++ l2).reverse         ==| trivial                   |
@@ -618,7 +627,7 @@ object ListSpecs {
   }.holds
 
   def snocFoldRight[A, B](xs: List[A], y: A, z: B, f: (A, B) => B): Boolean = {
-    (xs :+ y).foldRight(z)(f) == xs.foldRight(f(y, z))(f) because {
+    ( (xs :+ y).foldRight(z)(f) == xs.foldRight(f(y, z))(f) ) because {
       xs match {
         case Nil() => true
         case Cons(x, xs) => snocFoldRight(xs, y, z, f)
@@ -628,7 +637,7 @@ object ListSpecs {
 
   def folds[A, B](xs: List[A], z: B, f: (B, A) => B): Boolean = {
     val f2 = (x: A, z: B) => f(z, x)
-    xs.foldLeft(z)(f) == xs.reverse.foldRight(z)(f2) because {
+    ( xs.foldLeft(z)(f) == xs.reverse.foldRight(z)(f2) ) because {
       xs match {
         case Nil() => true
         case Cons(x, xs) => {
@@ -645,7 +654,7 @@ object ListSpecs {
   }.holds
 
   def scanVsFoldLeft[A, B](l : List[A], z: B, f: (B, A) => B): Boolean = {
-    l.scanLeft(z)(f).last == l.foldLeft(z)(f) because {
+    ( l.scanLeft(z)(f).last == l.foldLeft(z)(f) ) because {
       l match {
         case Nil() => true
         case Cons(x, xs) => scanVsFoldLeft(xs, f(z, x), f)
@@ -656,6 +665,28 @@ object ListSpecs {
   @induct
   def scanVsFoldRight[A,B](l: List[A], z: B, f: (A,B) => B): Boolean = {
     l.scanRight(z)(f).head == l.foldRight(z)(f)
+  }.holds
+ 
+  def appendContent[A](l1: List[A], l2: List[A]) = {
+    l1.content ++ l2.content == (l1 ++ l2).content
+  }.holds
+
+  import ListOps.flatten
+  def flattenPreservesContent[T](ls: List[List[T]]): Boolean = {
+    val f: (List[T], Set[T]) => Set[T] = _.content ++ _
+    ( flatten(ls).content == ls.foldRight(Set[T]())(f) ) because {
+      ls match {
+        case Nil() => true 
+        case Cons(h, t) => {
+          flatten(h :: t).content                     ==| trivial                       |
+          (h ++ flatten(t)).content                   ==| appendContent(h, flatten(t))  |
+          h.content ++ flatten(t).content             ==| flattenPreservesContent(t)    |
+          h.content ++ t.foldRight(Set[T]())(f)       ==| trivial                       |
+          f(h, Set[T]()) ++ t.foldRight(Set[T]())(f)  ==| trivial                       |
+          (h :: t).foldRight(Set[T]())(f)
+        }.qed
+      }
+    }
   }.holds
 
 }
