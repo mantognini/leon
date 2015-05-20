@@ -41,7 +41,7 @@ object ImplicationExample {
 
     def mamalHaveEigthLegs: Boolean = {
         false // Another fact.
-    }.fallacy
+    }.neverHolds
 
     def hasEigthLegs(a: Animal): LegsProposition = a match {
         case Insect() => insectsHaveEightLegs
@@ -72,7 +72,7 @@ object ImplicationExample {
 
     def animalsWithoutEigthLegsDontPlayPoker: Boolean = {
         false // Idem
-    }.fallacy
+    }.neverHolds
 
     def isAPokerPlayer(prop: LegsProposition): PokerPlayerProposition = prop match {
         case HasEigthLegs => IsPokerPlayer
@@ -81,14 +81,14 @@ object ImplicationExample {
 
     // Jeff has 8 legs
     def lemma1(a: Animal): Boolean = {
-        (isJeff(a) implies isAnInsect(jeff)) implies hasEigthLegs(jeff) // because insect have 8 legs
+        (isJeff(a) ==> isAnInsect(jeff)) ==> hasEigthLegs(jeff) // because insect have 8 legs
     }.holds
 
     // Jeff plays Poker
     def lemma2(a: Animal): Boolean = {
         {
             // false implies
-            isJeff(a)                       ==>| trivially                |
+            a                               ==>| isJeff                   |
             isAnInsect(jeff)                ==>| trivially                |
             insectsHaveEightLegs            ==>| trivially                |
             isAPokerPlayer(HasEigthLegs)    ==>| pokerPlayer2boolean        // no implicit convertion

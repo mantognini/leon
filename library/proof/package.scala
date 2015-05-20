@@ -2,14 +2,14 @@
 package leon
 
 import leon.annotation._
+import leon.lang._
 import scala.language.implicitConversions
 
 package object proof {
 
   case class ProofOps(prop: Boolean) {
     def because(proof: Boolean): Boolean = proof && prop
-    def implies(that: Boolean): Boolean = !prop || that
-    def fallacy: Boolean = { // TODO this is probaly not the right verb...
+    def neverHolds: Boolean = {
       require(!prop)
       prop
     }
@@ -41,15 +41,15 @@ package object proof {
 
   case class ImplicationReasoning[A](x: A, prop: Boolean) {
     def ==>|(f: A => Boolean): ImplicationReasoning[A] = {
-      require(prop implies f(x))
+      require(prop ==> f(x))
       ImplicationReasoning(x, f(x))
-      // ImplicationReasoning(x, prop implies f(x))    <- this is wrong because
+      // ImplicationReasoning(x, prop ==> f(x))        <- this is wrong because
       //                                                  we propagate false all
       //                                                  the way to the end
     }
 
     def |[B](that: ImplicationReasoning[B]): ImplicationReasoning[B] = {
-      ImplicationReasoning(that.x, this.prop implies that.prop)
+      ImplicationReasoning(that.x, this.prop ==> that.prop)
     }
 
     def qed: Boolean = prop
