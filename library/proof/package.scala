@@ -32,10 +32,10 @@ package object proof {
 
     def |(that: EqReasoning[A]): EqReasoning[A] = {
       require(this.prop ==> (this.rhs == that.lhs))
-      EqReasoning(this.lhs, that.rhs, this.lhs == that.rhs && that.prop)
+      EqReasoning(this.lhs, that.rhs, that.prop)
     }
 
-    def qed: Boolean = prop ==> (lhs == rhs)
+    def qed: Boolean = lhs == rhs
   }
 
   implicit def any2EqReasoning[A](x: A): EqReasoning[A] = EqReasoning(x, x, true)
