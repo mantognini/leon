@@ -10,6 +10,14 @@ object PropositionalLogic {
   case class Not(f: Formula) extends Formula
   case class Literal(id: Int) extends Formula
 
+  def size(f : Formula) : BigInt = (f match {
+    case And(lhs, rhs) => size(lhs) + size(rhs) + 1
+    case Or(lhs, rhs) => size(lhs) + size(rhs) + 1
+    case Implies(lhs, rhs) => size(lhs) + size(rhs) + 1
+    case Not(f) => size(f) + 1
+    case _ => BigInt(1)
+  })
+
   def simplify(f: Formula): Formula = (f match {
     case And(lhs, rhs) => And(simplify(lhs), simplify(rhs))
     case Or(lhs, rhs) => Or(simplify(lhs), simplify(rhs))
@@ -36,7 +44,7 @@ object PropositionalLogic {
     case Not(Not(f)) => nnf(f)
     case Not(Literal(_)) => formula
     case Literal(_) => formula
-  }) ensuring(isNNF(_))
+  }) ensuring(res => isNNF(res) && size(res) <= 2*size(formula) - 1)
 
   def isNNF(f: Formula): Boolean = f match {
     case And(lhs, rhs) => isNNF(lhs) && isNNF(rhs)
@@ -48,7 +56,7 @@ object PropositionalLogic {
   }
 
   def vars(f: Formula): Set[Int] = {
-  require(isNNF(f))
+    require(isNNF(f))
     f match {
       case And(lhs, rhs) => vars(lhs) ++ vars(rhs)
       case Or(lhs, rhs) => vars(lhs) ++ vars(rhs)
@@ -60,10 +68,10 @@ object PropositionalLogic {
 
   def fv(f : Formula) = { vars(nnf(f)) }
 
-  @induct
-  def wrongCommutative(f: Formula) : Boolean = {
-    nnf(simplify(f)) == simplify(nnf(f))
-  } holds
+  // @induct
+  // def wrongCommutative(f: Formula) : Boolean = {
+  //   nnf(simplify(f)) == simplify(nnf(f))
+  // } holds
 
   @induct
   def simplifyBreaksNNF(f: Formula) : Boolean = {
