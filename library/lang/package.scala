@@ -12,8 +12,9 @@ package object lang {
       assert(underlying)
       underlying
     }
-    def ==> (that: Boolean): Boolean = {
-      !underlying || that
+    def ==> (that: => Boolean): Boolean = {
+      //!underlying || that
+      if (underlying) that else true
     }
   }
 

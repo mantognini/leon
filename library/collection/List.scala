@@ -491,6 +491,8 @@ object ListOps {
 case class Cons[T](h: T, t: List[T]) extends List[T]
 case class Nil[T]() extends List[T]
 
+import ListOps._
+
 //@library
 object ListSpecs {
   def snocIndex[T](l : List[T], t : T, i : BigInt) : Boolean = {
@@ -546,8 +548,14 @@ object ListSpecs {
     ( (l1 ++ l2).apply(i) == (if (i < l1.size) l1(i) else l2(i - l1.size)) ) because {
       l1 match {
         case Nil() => true
-        case Cons(x,xs) => 
-          (i != BigInt(0)) ==> appendIndex[T](xs,l2,i-1)
+        case Cons(x,xs) =>
+          // sstucki: Given that "==>" takes it's second argument as a
+          // by-name parameter, the following should work, but it
+          // doesn't.  So I reverted it to the old implementation
+          // (expanding "==>" manually).
+          //
+          //(i != BigInt(0)) ==> appendIndex[T](xs,l2,i-1)
+          if (i == BigInt(0)) true else appendIndex[T](xs,l2,i-1)
       }
     }
   }.holds
@@ -671,7 +679,6 @@ object ListSpecs {
     l1.content ++ l2.content == (l1 ++ l2).content
   }.holds
 
-  import ListOps.flatten
   def flattenPreservesContent[T](ls: List[List[T]]): Boolean = {
     val f: (List[T], Set[T]) => Set[T] = _.content ++ _
     ( flatten(ls).content == ls.foldRight(Set[T]())(f) ) because {
