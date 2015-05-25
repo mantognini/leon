@@ -11,99 +11,49 @@ object ImplicationExample {
      * the proof in itself should correct.
      */
 
-    sealed abstract class LegsProposition
-    case object HasEigthLegs extends LegsProposition
-    case object DoesntHaveEigthLegs extends LegsProposition
-
-    implicit def boolean2Legs(prop: Boolean) = if (prop) HasEigthLegs else DoesntHaveEigthLegs
-    implicit def legs2boolean(prop: LegsProposition) = prop match {
-        case HasEigthLegs => true
-        case _ => false
-    }
-
-    sealed abstract class PokerPlayerProposition
-    case object IsPokerPlayer extends PokerPlayerProposition
-    case object NoPokerPlayer extends PokerPlayerProposition
-
-    // NB: no implicit conversions!
-    def pokerPlayer2boolean(prop: PokerPlayerProposition): Boolean = prop match {
-        case IsPokerPlayer => true
-        case _ => false
-    }
-
     sealed abstract class Animal
     case class Insect() extends Animal
     case class Mamal() extends Animal
 
-    def insectsHaveEightLegs: Boolean = {
-        true // That's a "fact".
-    }.holds
+    sealed abstract class AnimalKind
+    case object InsectKind extends AnimalKind
+    case object MamalKind extends AnimalKind
 
-    def mamalHaveEigthLegs: Boolean = {
-        false // Another fact.
-    }.neverHolds
+    sealed abstract class LegsProperty
+    case object HasEigthLegs extends LegsProperty
+    //case object HasTwoLegs extends LegsProperty
 
-    def hasEigthLegs(a: Animal): LegsProposition = a match {
-        case Insect() => insectsHaveEightLegs
-        case Mamal() => mamalHaveEigthLegs
-    }
+    sealed abstract class PlayerKind
+    case object PockerKind extends PlayerKind
+    //
 
     val jeff = Insect()
 
-    def jeffIsAnInsect: Boolean = (jeff match {
-        case Insect() => true
-        case _ => false
-    }).holds // Yet another fact.
+    def isEqual(a: Animal, b: Animal): Boolean = a == b
 
-    def isAnInsect(a: Animal): Boolean = a match {
-        case Insect() => true
-        case _ => false
+    def isKindOf(a: Animal, k: AnimalKind): Boolean = a match {
+        case Insect() => k == InsectKind
+        case Mamal()  => k == MamalKind
     }
 
-    def isJeff(a: Animal) = jeff == a
+    def hasLegsProperty(k: AnimalKind, l: LegsProperty): Boolean = k match {
+        case InsectKind => l == HasEigthLegs
+        case MamalKind  => l != HasEigthLegs
+    }
 
-    def jeffHasEigthLegs: Boolean = {
-        insectsHaveEightLegs because isAnInsect(jeff)
-    }.holds
+    def isKindOf(l: LegsProperty, p: PlayerKind): Boolean = l match {
+        case HasEigthLegs => p == PockerKind
+    }
 
-    def animalsWithEigthLegsPlayPoker: Boolean = {
-        true // Some other facts
-    }.holds
-
-    def animalsWithoutEigthLegsDontPlayPoker: Boolean = {
-        false // Idem
-    }.neverHolds
-
-    def isAPokerPlayer(prop: LegsProposition): PokerPlayerProposition = prop match {
-        case HasEigthLegs => IsPokerPlayer
-        case _ => NoPokerPlayer
-    }//.ensuring{ res => (res == IsPokerPlayer) == (prop == HasEigthLegs) }
-
-    // Jeff has 8 legs
-    def lemma1(a: Animal): Boolean = {
-        (isJeff(a) ==> isAnInsect(jeff)) ==> hasEigthLegs(jeff) // because insect have 8 legs
-    }.holds
+    def implies(a: Boolean, b: Boolean) = a ==> b
 
     // Jeff plays Poker
-    def lemma2(a: Animal): Boolean = {
-        {
-            // false implies
-            a                               ==>| isJeff                   |
-            isAnInsect(jeff)                ==>| trivially                |
-            insectsHaveEightLegs            ==>| trivially                |
-            isAPokerPlayer(HasEigthLegs)    ==>| pokerPlayer2boolean        // no implicit convertion
-        }.qed
+    def lemma(animal: Animal): Boolean = {
+        isEqual(animal, jeff) ==>
+        isKindOf(jeff, InsectKind) ==>
+        hasLegsProperty(InsectKind, HasEigthLegs) ==>
+        isKindOf(HasEigthLegs, PockerKind)
     }.holds
 
-    // Not all poker player are Jeff...
-    def fallacy1(a: Animal): Boolean = {
-        {
-            isAPokerPlayer(HasEigthLegs) ==>| pokerPlayer2boolean |
-            insectsHaveEightLegs         ==>| trivially           |
-            isAnInsect(jeff)             ==>| trivially           |
-            isJeff(a)                    ==>| trivially
-        }.qed
-    }.holds
 }
 
-// vim: set ts=4 sw=4 et:
