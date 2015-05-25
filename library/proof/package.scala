@@ -50,39 +50,5 @@ package object proof {
   implicit def any2RelReasoning[A](x: A): RelReasoning[A] =
     RelReasoning(x, true)
 
-  /*
-  case class EqReasoning[A](x: A, prop: Boolean) {
-    def ==|(proof: Boolean): EqReasoning[A] = {
-      require(proof)
-      EqReasoning(lhs, rhs, proof)
-    }
-
-    def |(that: EqReasoning[A]): EqReasoning[A] = {
-      require(this.prop ==> (this.rhs == that.lhs))
-      EqReasoning(this.lhs, that.rhs, that.prop)
-    }
-
-    def qed: Boolean = lhs == rhs
-  }
-
-  implicit def any2EqReasoning[A](x: A): EqReasoning[A] = EqReasoning(x, x, true)
-
-  case class ImplicationReasoning[A](x: A, prop: Boolean) {
-    def ==>|(f: A => Boolean): ImplicationReasoning[A] = {
-      require(prop ==> f(x))
-      ImplicationReasoning(x, f(x))
-      // ImplicationReasoning(x, prop ==> f(x))        <- this is wrong because
-      //                                                  we propagate false all
-      //                                                  the way to the end
-    }
-
-    def |[B](that: ImplicationReasoning[B]): ImplicationReasoning[B] = {
-      ImplicationReasoning(that.x, this.prop ==> that.prop)
-    }
-
-    def qed: Boolean = prop
-  }
-
-  implicit def any2ImplicationReasoning[A](x: A): ImplicationReasoning[A] = ImplicationReasoning(x, false)
-   */
 }
+
