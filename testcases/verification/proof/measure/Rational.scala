@@ -2,6 +2,7 @@
 
 package leon.testcases.verification.proof.measure
 
+import leon.proof._
 import leon.lang._
 import scala.language.implicitConversions
 
@@ -34,12 +35,28 @@ case class Rational (n: BigInt, d: BigInt) {
 
   def <=(that: Rational): Boolean = {
     require(isRational && that.isRational)
-    n * that.d <= d * that.n
+    if (that.d * d > 0)
+      n * that.d <= d * that.n
+    else
+      n * that.d >= d * that.n
+  }
+
+  def <(that: Rational): Boolean = {
+    require(isRational && that.isRational)
+    if (that.d * d > 0)
+      n * that.d < d * that.n
+    else
+      n * that.d > d * that.n
   }
 
   def >=(that: Rational): Boolean = {
     require(isRational && that.isRational)
     that <= this
+  }
+
+  def >(that: Rational): Boolean = {
+    require(isRational && that.isRational)
+    that < this
   }
 
   // Equivalence of two rationals, true if they represent the same real number
@@ -96,6 +113,38 @@ object RationalSpecs {
     require(a.isRational && b.isRational && c.isRational)
 
     (a <= b) ==> ((a + c) <= (b + c))
+  }.holds
+
+  def orderingTransitivity(a: Rational, b: Rational, c: Rational): Boolean = {
+    require(a.isRational && b.isRational && c.isRational)
+
+    ((a < b) && (b < c)) ==> (a < c) &&
+    (((a <= b) && (b <= c)) ==> (a <= c))
+  }.holds
+
+  def orderingAntisymmetry(a: Rational, b: Rational): Boolean = {
+    require(a.isRational && b.isRational)
+
+    (a <= b && b <= a) ==> a ~ b
+  }.holds
+
+  def orderingReflexivity(a: Rational): Boolean = {
+    require(a.isRational)
+
+    a <= a
+  }.holds
+
+  def orderingIrreflexivity(a: Rational): Boolean = {
+    require(a.isRational)
+
+    !(a < a)
+  }.holds
+
+  def orderingExtra(a: Rational, b: Rational): Boolean = {
+    require(a.isRational && b.isRational)
+
+    ((a < b) == !(b <= a)) &&
+    ((a < b) == (a <= b && !(a ~ b)))
   }.holds
 
 }
