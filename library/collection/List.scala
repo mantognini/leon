@@ -499,7 +499,7 @@ case class Nil[T]() extends List[T]
 
 import ListOps._
 
-//@library
+@library
 object ListSpecs {
   def snocIndex[T](l : List[T], t : T, i : BigInt) : Boolean = {
     require(0 <= i && i < l.size + 1)
@@ -604,7 +604,7 @@ object ListSpecs {
   def reverseReverse[T](l : List[T]) : Boolean = {
     ( l.reverse.reverse == l ) because {
       l match {
-        case Nil() => 
+        case Nil() =>
           true
         case Cons(x,xs) =>
           reverseReverse[T](xs) && snocReverse[T](xs.reverse, x)
@@ -674,7 +674,7 @@ object ListSpecs {
   def scanVsFoldRight[A,B](l: List[A], z: B, f: (A,B) => B): Boolean = {
     l.scanRight(z)(f).head == l.foldRight(z)(f)
   }.holds
- 
+
   def appendContent[A](l1: List[A], l2: List[A]) = {
     l1.content ++ l2.content == (l1 ++ l2).content
   }.holds
@@ -683,7 +683,7 @@ object ListSpecs {
     val f: (List[T], Set[T]) => Set[T] = _.content ++ _
     ( flatten(ls).content == ls.foldRight(Set[T]())(f) ) because {
       ls match {
-        case Nil() => true 
+        case Nil() => true
         case Cons(h, t) => {
           flatten(h :: t).content                     ==| trivial                       |
           (h ++ flatten(t)).content                   ==| appendContent(h, flatten(t))  |
