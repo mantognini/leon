@@ -13,7 +13,6 @@ package object lang {
       underlying
     }
     def ==> (that: => Boolean): Boolean = {
-      //!underlying || that
       if (underlying) that else true
     }
   }

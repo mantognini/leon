@@ -555,13 +555,7 @@ object ListSpecs {
       l1 match {
         case Nil() => true
         case Cons(x,xs) =>
-          // sstucki: Given that "==>" takes it's second argument as a
-          // by-name parameter, the following should work, but it
-          // doesn't.  So I reverted it to the old implementation
-          // (expanding "==>" manually).
-          //
-          //(i != BigInt(0)) ==> appendIndex[T](xs,l2,i-1)
-          if (i == BigInt(0)) true else appendIndex[T](xs,l2,i-1)
+          (i != BigInt(0)) ==> appendIndex[T](xs, l2, i - 1)
       }
     }
   }.holds
