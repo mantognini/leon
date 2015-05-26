@@ -10,28 +10,47 @@ object Rational {
   implicit def bigInt2Rational(x: BigInt) = Rational(x, 1)
 }
 
-// Represents rational number n/d, where n is the numerator and d the denumerator
+/**
+ * Represents rational number 'n / d', where 'n' is the numerator and
+ * 'd' the denominator.
+ */
 case class Rational (n: BigInt, d: BigInt) {
 
   def +(that: Rational): Rational = {
     require(isRational && that.isRational)
     Rational(n * that.d + that.n * d, d * that.d)
-  } ensuring { _.isRational }
+  } ensuring { res =>
+    res.isRational &&
+    ((this.isPositive == that.isPositive) ==>
+      (res.isPositive == this.isPositive))
+  }
 
   def -(that: Rational): Rational = {
     require(isRational && that.isRational)
     Rational(n * that.d - that.n * d, d * that.d)
-  } ensuring { _.isRational }
+  } ensuring { res =>
+    res.isRational &&
+    ((this.isPositive != that.isPositive) ==>
+      (res.isPositive == this.isPositive))
+  }
 
   def *(that: Rational): Rational = {
     require(isRational && that.isRational)
     Rational(n * that.n, d * that.d)
-  } ensuring { _.isRational }
+  } ensuring { res =>
+    res.isRational &&
+    (res.isNonZero == (this.isNonZero && that.isNonZero)) &&
+    (res.isPositive == (!res.isNonZero || this.isPositive == that.isPositive))
+  }
 
   def /(that: Rational): Rational = {
-    require(isRational && that.isRational && that.nonZero)
+    require(isRational && that.isRational && that.isNonZero)
     Rational(n * that.d, d * that.n)
-  } ensuring { _.isRational }
+  } ensuring { res =>
+    res.isRational &&
+    (res.isNonZero == this.isNonZero) &&
+    (res.isPositive == (!res.isNonZero || this.isPositive == that.isPositive))
+  }
 
   def <=(that: Rational): Boolean = {
     require(isRational && that.isRational)
@@ -66,8 +85,8 @@ case class Rational (n: BigInt, d: BigInt) {
   }
 
   def isRational = d != 0
-  def nonZero = n != 0
-
+  def isPositive = isRational && (n * d >= 0)
+  def isNonZero  = isRational && (n != 0)
 }
 
 object RationalSpecs {
@@ -103,7 +122,7 @@ object RationalSpecs {
     require(
       a1.isRational && a2.isRational && b1.isRational && b2.isRational &&
         a1 ~ a2 && b1 ~ b2 &&
-        b1.nonZero // in addition to the usual requirements
+        b1.isNonZero // in addition to the usual requirements
     )
 
     (a1 / b1) ~ (a2 / b2)
@@ -146,6 +165,5 @@ object RationalSpecs {
     ((a < b) == !(b <= a)) &&
     ((a < b) == (a <= b && !(a ~ b)))
   }.holds
-
 }
 
