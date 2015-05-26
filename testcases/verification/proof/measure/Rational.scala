@@ -128,10 +128,11 @@ object RationalSpecs {
     (a1 / b1) ~ (a2 / b2)
   }.holds
 
-  def orderingPreservedOverAddition(a: Rational, b: Rational, c: Rational): Boolean = {
+  def additionPreservesOrdering(a: Rational, b: Rational, c: Rational): Boolean = {
     require(a.isRational && b.isRational && c.isRational)
 
-    (a <= b) ==> ((a + c) <= (b + c))
+    (a <= b) ==> (a + c <= b + c) &&
+    (a <= b) ==> (c + a <= c + b)
   }.holds
 
   def orderingTransitivity(a: Rational, b: Rational, c: Rational): Boolean = {
@@ -164,6 +165,18 @@ object RationalSpecs {
 
     ((a < b) == !(b <= a)) &&
     ((a < b) == (a <= b && !(a ~ b)))
+  }.holds
+
+  def plusAssoc(a: Rational, b: Rational, c: Rational): Boolean = {
+    require(a.isRational && b.isRational && c.isRational)
+
+    (a + b) + c == a + (b + c)
+  }.holds
+
+  def plusComm(a: Rational, b: Rational): Boolean = {
+    require(a.isRational && b.isRational)
+
+    a + b == b + a
   }.holds
 }
 
