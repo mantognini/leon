@@ -85,7 +85,7 @@ sealed abstract class Meas[A] {
     require(a.isRational && a.isPositive && isMeasure)
     this match {
       case Empty()       => Empty()
-      case Cons(x, w, m) => Cons(x, a * w, m)
+      case Cons(x, w, m) => Cons(x, w * a, m * a)
     }
   } ensuring (_.isMeasure)
 
@@ -113,6 +113,9 @@ sealed abstract class Meas[A] {
     this(xs ++ ys) ~ (this(xs) * this(ys))
   }
 
+  /** Check if this measure is a probability. */
+  def isProb: Boolean = isMeasure && this() ~ BigInt(1)
+
   /*
 
    TODO: the following need additional lemmas to be verified.
@@ -129,10 +132,6 @@ sealed abstract class Meas[A] {
       case Cons(x, w, m) => f(x) * w + m.expect(f)
     }
   }
-
-  /** Check if this measure is a probability. */
-  def isProb: Boolean =
-    this.isMeasure && this.expect(_ => BigInt(1)) ~ BigInt(1)
 
   /** Convert this measure into a map. */
   def toMap: Map[A, Rational] = {
@@ -219,16 +218,16 @@ object MeasSpecs {
     m(xs ++ ys) <= m(xs) + m(ys) because {
       m match {
         case Empty()       => trivial
-        case Cons(x, w, n) => if (xs contains x) {
+        case Cons(x, w, n) => if (xs contains x) check {
           w + n(xs ++ ys) <= w + (n(xs) + n(ys)) because
             subAdditivity(n, xs, ys) &&
             additionPreservesOrdering(n(xs ++ ys), n(xs) + n(ys), w)
-        } && {
-          if (ys contains x) {
+        } && check {
+          if (ys contains x) check {
             w + (n(xs) + n(ys)) <= w + (n(xs) + n(ys)) + w because
               w + (n(xs) + n(ys)) == w + (n(xs) + n(ys)) + BigInt(0) &&
               additionPreservesOrdering(BigInt(0), w, w + (n(xs) + n(ys)))
-          } && {
+          } && check {
             w + n(xs ++ ys) <= w + (n(xs) + n(ys)) + w because
               orderingTransitivity(
                 w + n(xs ++ ys),
@@ -245,7 +244,7 @@ object MeasSpecs {
             m(xs)       + m(ys)
           }.qed
         } else {
-          if (ys contains x) {
+          if (ys contains x) check {
             w + n(xs ++ ys) <= w + (n(xs) + n(ys)) because
               subAdditivity(n, xs, ys) &&
               additionPreservesOrdering(n(xs ++ ys), n(xs) + n(ys), w)
