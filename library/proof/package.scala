@@ -24,6 +24,11 @@ package object proof {
   def by(proof: Boolean)(prop: Boolean): Boolean =
     proof && prop
 
+  def check(prop: Boolean): Boolean = {
+    require(prop)
+    prop
+  }
+
   /**
    * Relational reasoning.
    *
