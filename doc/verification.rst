@@ -227,3 +227,100 @@ difficult to prove, and it is possible for the user to provide hints to Leon.
 
 Hints typically take the form of simpler properties that combine in order to prove
 more complicated ones.
+
+Neon
+====
+
+.. TODO decide how previous § & what follows should be integrated together (or
+   not)
+
+A practical introduction to proofs
+----------------------------------
+
+When writing preconditions or postconditions, one is basically writing boolean
+propositions. It can be as simple as testing whether a list is empty or not, to
+more complex combinations of properties.  Lemmas or theorems can then be
+expressed using boolean-valued methods to ensure they are tautologies, or, in
+other words, that their statement holds for all valid inputs.
+
+To make this more concrete, let's take a simple lemma as an example. Here we
+want to prove that the append operation (``++``) on list preserves the content
+of the two lists being concatenated. The proof is relatively straightforward and
+Leon succeeds to prove the lemma always holds.
+
+.. code-block:: scala
+
+    import leon.collection._ // for List
+    import leon.lang._       // for holds
+
+    object Example {
+      def appendContent[A](l1: List[A], l2: List[A]): Boolean = {
+        l1.content ++ l2.content == (l1 ++ l2).content
+      }.holds
+    }
+
+.. NOTE I used appendContent instead of appendAssoc because the latter use
+   @induct
+
+Here we wrote ``.holds`` which is a method implicitly available on ``Boolean``
+that ensure the returned value is ``true``. It is equivalent to writing
+``ensuring { res => res }``, or, more concisely, ``ensuring{_}``.
+
+Now let's look at another example that looks trivial but for which Leon
+actually needs some help for the proof: we want to prove that adding ``Nil``
+at the end of a list has no effect.
+
+.. code-block:: scala
+
+    import leon.collection._ // for List
+    import leon.lang._       // for holds
+
+    object Example {
+      def rightUnitAppend[T](l1: List[T]): Boolean = {
+        l1 ++ Nil() == l1
+      }.holds
+    }
+
+If you try to verify this last example you'll face a delicate situation: Leon
+runs indeterminately until it is either killed or timeout. But why does this
+happen?  The statement doesn't seems more complicated than with
+``appendContent``...
+
+The problem is that, in the implementation of ``++``, the recursion is on the
+first parameter (here ``l1``). So we need to augment the proof with a recursion
+on ``l1`` to palliate to this issue and give a complete explanation to Leon as
+of why adding ``Nil`` to the left of a list has no effect.
+
+.. code-block:: scala
+
+    import leon.collection._ // for List
+    import leon.lang._       // for holds
+    import leon.proof._      // for because
+
+    object Example {
+      def rightUnitAppend[T](l1: List[T]): Boolean = {
+        (l1 ++ Nil() == l1) because {
+          l1 match {
+            case Nil()       => true
+            case Cons(x, xs) => rightUnitAppend(xs)
+          }
+        }
+      }.holds
+    }
+
+With this new implementation of the ``rightUnitAppend`` lemma, Leon is capable
+of verifying it holds. If you look closely at it, you can distinguish three
+parts:
+
+1. the claim we want to prove ``l1 ++ Nil() == l1``;
+2. ``because``, which is just some syntactic sugar for conjunction -- remember,
+   every proposition is a Boolean formula;
+3. and some recursion on ``l1`` that serves as a hint for Leon.
+
+The recursion is based here on pattern matching, which Leon will also check for
+exhaustiveness, that has essentially the same structure as the one present in
+the implementation of ``++``: the base case is when ``l1`` is the empty string
+and the inductive case is performed on ``Cons`` objects.
+
+.. TODO add the same example but with @induct
+
