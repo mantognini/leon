@@ -503,13 +503,11 @@ import ListOps._
 object ListSpecs {
   def snocIndex[T](l : List[T], t : T, i : BigInt) : Boolean = {
     require(0 <= i && i < l.size + 1)
-    // proof:
+    ((l :+ t).apply(i) == (if (i < l.size) l(i) else t)) because
     (l match {
       case Nil() => true
       case Cons(x, xs) => if (i > 0) snocIndex[T](xs, t, i-1) else true
-    }) &&
-    // claim:
-    ((l :+ t).apply(i) == (if (i < l.size) l(i) else t))
+    })
   }.holds
 
   def reverseIndex[T](l : List[T], i : BigInt) : Boolean = {
@@ -565,11 +563,11 @@ object ListSpecs {
     (l1 ++ l2) ++ l3 == l1 ++ (l2 ++ l3)
   }.holds
 
-  def rightIdAppend[T](l1 : List[T]) : Boolean = {
+  def rightUnitAppend[T](l1 : List[T]) : Boolean = {
     (l1 ++ Nil() == l1) because {
       l1 match {
         case Nil() => true
-        case Cons(x, xs) => rightIdAppend(xs)
+        case Cons(x, xs) => rightUnitAppend(xs)
       }
     }
   }.holds
@@ -616,9 +614,9 @@ object ListSpecs {
     ( (l1 ++ l2).reverse == l2.reverse ++ l1.reverse ) because {
       l1 match {
         case Nil() => {
-          (Nil() ++ l2).reverse         ==| trivial                   |
-          l2.reverse                    ==| rightIdAppend(l2.reverse) |
-          l2.reverse ++ Nil()           ==| trivial                   |
+          (Nil() ++ l2).reverse         ==| trivial                     |
+          l2.reverse                    ==| rightUnitAppend(l2.reverse) |
+          l2.reverse ++ Nil()           ==| trivial                     |
           l2.reverse ++ Nil().reverse
         }.qed
         case Cons(x, xs) => {
