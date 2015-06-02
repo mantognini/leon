@@ -28,7 +28,7 @@ For each function, Leon attempts to verify its contract, if there is one. A
 function meets its contract if for any input parameter that passes the
 precondition, the postcondition holds after executing the function.
 Preconditions and postconditions are annotations given by the user --- they are
-the secifications and hence cannot be infered by a tool and must be provided.
+the specifications and hence cannot be inferred by a tool and must be provided.
 
 In addition to user-provided contracts, Leon will also generate a few safety
 verification conditions of its own. It will check that all of the array
@@ -111,14 +111,14 @@ not checked as part of verifying the function. Given the following definition:
      require(prec)
      body
    }
-    
+
 
 For each call site in the whole program (including in ``f`` itself):
 
 .. code-block:: scala
 
    ...
-   f(e) 
+   f(e)
    ...
 
 where the expression :math:`\mbox{e}(x)` is an expression of type ``A`` with
@@ -130,8 +130,8 @@ when the call site is inside an if expression:
 .. code-block:: scala
 
    if(x > 0)
-     f(x) 
-     
+     f(x)
+
 The path condition on :math:`x` would include the fact that :math:`x > 0`. This
 path condition is then used as a precondition of proving the validity of the
 call to :math:`\mbox{f}`. Formally, for each such call site, Leon will attempt
@@ -145,7 +145,7 @@ Leon will generates one such theorem for each static call site of a function wit
 a precondition.
 
 .. note::
-    
+
    Leon only assumes an open program model, where any function could be called from
    outside of the given program. In particular, Leon will not derive a precondition
    to a function based on known information in the context of the calls, such as
@@ -166,7 +166,7 @@ following program:
    (while(cond) {
      body
    }) invariant(inv)
-    
+
 where the boolean expression :math:`\mbox{cond}(x)` is over the free variable
 :math:`x` and the expression :math:`\mbox{body}(x, x')` relates the value of
 :math:`x` when entering the loop to its updated value :math:`x'` on loop exit.
@@ -223,7 +223,7 @@ As we have seen, verifying the contract of a function is really proving a mathem
 theorem. In some sense, Leon can be seen as a (mostly) automated theorem prover. It is
 automated in the sense that once the property stated, Leon will proceed with searching
 for a proof without any user interaction. In practice however, many theorems will be fairly
-difficult to prove, and it is possible for the user to provide hints to Leon. 
-  
+difficult to prove, and it is possible for the user to provide hints to Leon.
+
 Hints typically take the form of simpler properties that combine in order to prove
 more complicated ones.
