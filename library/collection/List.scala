@@ -501,7 +501,7 @@ import ListOps._
 
 @library
 object ListSpecs {
-  def snocIndex[T](l : List[T], t : T, i : BigInt) : Boolean = {
+  def snocIndex[T](l: List[T], t: T, i: BigInt): Boolean = {
     require(0 <= i && i < l.size + 1)
     ((l :+ t).apply(i) == (if (i < l.size) l(i) else t)) because
     (l match {
@@ -510,7 +510,7 @@ object ListSpecs {
     })
   }.holds
 
-  def reverseIndex[T](l : List[T], i : BigInt) : Boolean = {
+  def reverseIndex[T](l: List[T], i: BigInt): Boolean = {
     require(0 <= i && i < l.size)
     (l match {
       case Nil() => true
@@ -547,7 +547,7 @@ object ListSpecs {
     }
   }.holds
 
-  def appendIndex[T](l1 : List[T], l2 : List[T], i : BigInt) : Boolean = {
+  def appendIndex[T](l1: List[T], l2: List[T], i: BigInt): Boolean = {
     require(0 <= i && i < l1.size + l2.size)
     ( (l1 ++ l2).apply(i) == (if (i < l1.size) l1(i) else l2(i - l1.size)) ) because {
       l1 match {
@@ -559,20 +559,16 @@ object ListSpecs {
   }.holds
 
   @induct
-  def appendAssoc[T](l1 : List[T], l2 : List[T], l3 : List[T]) : Boolean = {
+  def appendAssoc[T](l1: List[T], l2: List[T], l3: List[T]): Boolean = {
     (l1 ++ l2) ++ l3 == l1 ++ (l2 ++ l3)
   }.holds
 
-  def rightUnitAppend[T](l1 : List[T]) : Boolean = {
-    (l1 ++ Nil() == l1) because {
-      l1 match {
-        case Nil() => true
-        case Cons(x, xs) => rightUnitAppend(xs)
-      }
-    }
+  @induct
+  def rightUnitAppend[T](l1: List[T]): Boolean = {
+    l1 ++ Nil() == l1
   }.holds
 
-  def snocIsAppend[T](l : List[T], t : T) : Boolean = {
+  def snocIsAppend[T](l: List[T], t: T): Boolean = {
     ( (l :+ t) == l ++ Cons[T](t, Nil()) ) because {
       l match {
         case Nil() => true
@@ -581,7 +577,7 @@ object ListSpecs {
     }
   }.holds
 
-  def snocAfterAppend[T](l1 : List[T], l2 : List[T], t : T) : Boolean = {
+  def snocAfterAppend[T](l1: List[T], l2: List[T], t: T): Boolean = {
     ( (l1 ++ l2) :+ t == l1 ++ (l2 :+ t) ) because {
       l1 match {
         case Nil() => true
@@ -590,7 +586,7 @@ object ListSpecs {
     }
   }.holds
 
-  def snocReverse[T](l : List[T], t : T) : Boolean = {
+  def snocReverse[T](l: List[T], t: T): Boolean = {
     ( (l :+ t).reverse == Cons(t, l.reverse) ) because {
       l match {
         case Nil() => true
@@ -599,7 +595,7 @@ object ListSpecs {
     }
   }.holds
 
-  def reverseReverse[T](l : List[T]) : Boolean = {
+  def reverseReverse[T](l: List[T]): Boolean = {
     ( l.reverse.reverse == l ) because {
       l match {
         case Nil() =>
@@ -610,7 +606,7 @@ object ListSpecs {
     }
   }.holds
 
-  def reverseAppend[T](l1 : List[T], l2 : List[T]) : Boolean = {
+  def reverseAppend[T](l1: List[T], l2: List[T]): Boolean = {
     ( (l1 ++ l2).reverse == l2.reverse ++ l1.reverse ) because {
       l1 match {
         case Nil() => {
@@ -659,7 +655,7 @@ object ListSpecs {
     }
   }.holds
 
-  def scanVsFoldLeft[A, B](l : List[A], z: B, f: (B, A) => B): Boolean = {
+  def scanVsFoldLeft[A, B](l: List[A], z: B, f: (B, A) => B): Boolean = {
     ( l.scanLeft(z)(f).last == l.foldLeft(z)(f) ) because {
       l match {
         case Nil() => true
