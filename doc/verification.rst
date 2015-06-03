@@ -286,6 +286,8 @@ runs indeterminately until it is either killed or timeout. But why does this
 happen?  The statement doesn't seems more complicated than with
 ``appendContent``...
 
+.. TODO would it be better to move the next paragraph in §General idea?
+
 The problem is that, in the implementation of ``++``, the recursion is on the
 first parameter (here ``l1``). So we need to augment the proof with a recursion
 on ``l1`` to palliate to this issue and give a complete explanation to Leon as
@@ -323,4 +325,48 @@ the implementation of ``++``: the base case is when ``l1`` is the empty string
 and the inductive case is performed on ``Cons`` objects.
 
 .. TODO add the same example but with @induct
+
+General idea
+************
+
+.. TODO explain because (if more need to be said) and check
+
+.. TODO sketch limitations
+
+Induction
+*********
+
+.. TODO natural + natural induction
+
+.. TODO @induct / case analysis
+
+.. TODO examples: rightUnitAppend with induct
+
+Rational reasoning
+******************
+
+.. TODO relational properties Leon knows about / transitivity, reflexivity,
+   symmetry / why this is useful / example: reverseAppend (without and with
+   DSL) / limitations of DSL
+
+Limits of the approach: HOF & quantifiers
+*****************************************
+
+.. TODO example: folds + future work (alt. version of folds)
+
+Technique for proving non-trivial post-conditions
+-------------------------------------------------
+
+.. TODO example: Meas.apply(xs) (+ def of Empty/Cons)
+
+A complex example: additivity of measures
+-----------------------------------------
+
+.. TODO
+
+Recap
+-----
+
+.. TODO lessons learned
+
 
