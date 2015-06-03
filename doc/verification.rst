@@ -342,12 +342,129 @@ Induction
 
 .. TODO examples: rightUnitAppend with induct
 
-Rational reasoning
-******************
+Relational reasoning
+********************
 
-.. TODO relational properties Leon knows about / transitivity, reflexivity,
-   symmetry / why this is useful / example: reverseAppend (without and with
-   DSL) / limitations of DSL
+Since many theorems have proofs involving relational reasoning, it is good to
+know how their properties (such as transitivity, reflexivity or symmetry) work
+in Leon, when one can rely on them to build proof or instead needs to give
+hints.
+
+When working with simple structural equality, we can rely on the default ``==``
+operator and Leon will happily understand when the reflexivity, symmetry and
+transitivity properties apply and use them to conclude bigger proofs. Similarly,
+when working on ``BigInt``, it knows about reflexivity, antisymmetry and
+transitivity over ``>=`` or ``<=`` , and also the antireflexivity, antisymmetry
+and transitivity of ``>`` and ``<``.
+
+However, even for relatively simple proofs Leon needs more information about
+other operations, such as appending a list to another one, in order to use
+those relations. For example, when proving that, for two lists ``l1`` and
+``l2``, the following statement holds, Leon will not be able to find a witness.
+
+.. code-block:: scala
+
+    (l1 ++ l2).reverse == l2.reverse ++ l1.reverse
+
+The hard part of giving hints to Leon is actually finding them. Here we can
+apply a general principle on top of classic structural induction: we start from
+the left hand side of the statement and build, with equality, a path to the
+right hand side. Using ``check`` statement we can identify where Leon timeouts
+and therefore focus on where it does need hints.
+
+.. code-block:: scala
+
+    def reverseAppend[T](l1: List[T], l2: List[T]): Boolean = {
+      ( (l1 ++ l2).reverse == l2.reverse ++ l1.reverse ) because {
+        l1 match {
+          case Nil() =>
+            /* 1 */ check { (Nil() ++ l2).reverse == l2.reverse                  } &&
+            /* 2 */ check { l2.reverse            == l2.reverse ++ Nil()         } &&
+            /* 3 */ check { l2.reverse ++ Nil()   == l2.reverse ++ Nil().reverse }
+          case Cons(x, xs) =>
+            /* 4 */ check { ((x :: xs) ++ l2).reverse       == (x :: (xs ++ l2)).reverse       } &&
+            /* 5 */ check { (x :: (xs ++ l2)).reverse       == (xs ++ l2).reverse :+ x         } &&
+            /* 6 */ check { (xs ++ l2).reverse :+ x         == (l2.reverse ++ xs.reverse) :+ x } &&
+            /* 7 */ check { (l2.reverse ++ xs.reverse) :+ x == l2.reverse ++ (xs.reverse :+ x) } &&
+            /* 8 */ check { l2.reverse ++ (xs.reverse :+ x) == l2.reverse ++ (x :: xs).reverse }
+        }
+      }
+    }.holds
+
+If you run the above code with a decent timeout, Leon should give you four
+*UNKNOWN*: the postcondition of the ``reverseAppend`` function itself and
+checks number 2, 6 and 7.
+
+Check #2 fails because, as we saw earlier, Leon is not capable of guessing the
+``rightUnitAppend`` lemma by itself. To palliate to this shortcoming we just
+need to instantiate this lemma by adding ``&& rightUnitAppend(l2.reverse)`` to
+the base case.
+
+Check #6 fails because, at this point, we need to inject the induction
+hypothesis on ``xs`` and ``l2`` by adding ``&& reverseAppend(xs, l2)``.
+
+Finally, check #7 fails for a similar raison to #2: we need an external lemma
+to prove that ``(l1 ++ l2) :+ t == l1 ++ (l2 :+ t)`` holds for any ``l1``,
+``l2`` and ``t``. We call this lemma ``snocAfterAppend`` and leave it as an
+exercise for the reader.
+
+So now that we have a valid proof for Leon, we can try to optimise it for
+readability. Indeed, the resulting code is all but DRY: every sides of
+equalities are repeated twice to connect them. We could either remove all the
+unnecessary code for the proof and only write:
+
+.. code-block:: scala
+
+     def reverseAppend[T](l1: List[T], l2: List[T]): Boolean = {
+       ( (l1 ++ l2).reverse == l2.reverse ++ l1.reverse ) because {
+         l1 match {
+           case Nil() =>
+             rightUnitAppend(l2.reverse)
+           case Cons(x, xs) =>
+             reverseAppend(xs, l2) && snocAfterAppend(l2.reverse, xs.reverse, x)
+         }
+       }
+     }.holds
+
+Or we can use some proof DSL to embed hints in the reasonings themselves and
+not lose information that is still useful for human being reading the proof
+later on:
+
+.. code-block:: scala
+
+    def reverseAppend[T](l1: List[T], l2: List[T]): Boolean = {
+      ( (l1 ++ l2).reverse == l2.reverse ++ l1.reverse ) because {
+        l1 match {
+          case Nil() => {
+            (Nil() ++ l2).reverse         ==| trivial                     |
+            l2.reverse                    ==| rightUnitAppend(l2.reverse) |
+            l2.reverse ++ Nil()           ==| trivial                     |
+            l2.reverse ++ Nil().reverse
+          }.qed
+          case Cons(x, xs) => {
+            ((x :: xs) ++ l2).reverse         ==| trivial               |
+            (x :: (xs ++ l2)).reverse         ==| trivial               |
+            (xs ++ l2).reverse :+ x           ==| reverseAppend(xs, l2) |
+            (l2.reverse ++ xs.reverse) :+ x   ==|
+              snocAfterAppend(l2.reverse, xs.reverse, x)                |
+            l2.reverse ++ (xs.reverse :+ x)   ==| trivial               |
+            l2.reverse ++ (x :: xs).reverse
+          }.qed
+        }
+      }
+    }.holds
+
+As you can see in the above code, the idea is to group statements in a block
+(``{ }``) and call ``qed`` on it. Then, instead of writing ``a == b && b == c
+&& hint1 && hint2`` we write ``a ==| hint1 | b ==| hint2 | c``. And when no
+additional hint is required, we can use ``trivial`` which simply stands for
+``true``.
+
+Additionally, by using this DSL, we get the same feedback granularity from Leon
+as if we had used ``check`` statements. This way we can construct proofs based
+on equality more easily and directly identify where hints are vital.
+
+.. TODO limitations of DSL
 
 Limits of the approach: HOF & quantifiers
 *****************************************
