@@ -466,6 +466,8 @@ on equality more easily and directly identify where hints are vital.
 
 .. TODO limitations of DSL --> no straightforward support for <= and similar ops
 
+.. TODO add a word about requirement in ctor (e.g. Rational)
+
 Limits of the approach: HOF & quantifiers
 *****************************************
 
@@ -474,7 +476,130 @@ Limits of the approach: HOF & quantifiers
 Technique for proving non-trivial post-conditions
 -------------------------------------------------
 
-.. TODO example: Meas.apply(xs) (+ def of Empty/Cons)
+When proving a mathematical lemma, the return type of the function is most of
+the time, if not always, ``Boolean``. For those proofs it is rather easy to
+write a postcondition: using ``holds`` is generally enough.
+
+But when it comes to writing postconditions for more general functions, such as
+the addition on rational numbers, we are no longer dealing with ``Boolean`` so
+we need a strategy to properly write ``ensuring`` statements.
+
+Rationals: a simple example
+***************************
+
+Let's take rational numbers as an example: we define them as a case class with
+two attributes, `n` for the numerator and `d` for the denominator. We also
+define three simple properties on them: ``isRational``, ``isNonZero`` and
+``isPositive``.
+
+.. code-block:: scala
+
+    case class Rational(n: BigInt, d: BigInt) {
+      def isRational = d != 0
+      def isPositive = isRational && (n * d >= 0)
+      def isNonZero  = isRational && (n != 0)
+
+      // ...
+    }
+
+And on top of that we want to support addition on ``Rational`` in a way that
+the rationality and positiveness properties are correctly preserved:
+
+.. code-block:: scala
+
+    def +(that: Rational): Rational = {
+      require(isRational && that.isRational)
+      Rational(n * that.d + that.n * d, d * that.d)
+    } ensuring { res =>
+      res.isRational &&
+      (this.isPositive == that.isPositive ==> res.isPositive == this.isPositive)
+    }
+
+This works nicely for such trivial example and we can write the multiplication
+in a similar fashion:
+
+.. code-block:: scala
+
+    def *(that: Rational): Rational = {
+      require(isRational && that.isRational)
+      Rational(n * that.n, d * that.d)
+    } ensuring { res =>
+      res.isRational &&
+      (res.isNonZero  == (this.isNonZero && that.isNonZero)) &&
+      (res.isPositive == (!res.isNonZero || this.isPositive == that.isPositive))
+    }
+
+
+Measures: a slightly more complex example
+*****************************************
+
+Now let's look at a slightly more complex example: measures on discrete
+probability spaces. We implement measure with a ``List``-like recursive data
+structure: a generic abstract class ``Meas`` that has to subclasses, ``Cons``
+and ``Empty``. The ``Const`` represent a *cell* with three fields: a value
+``x``, its weight ``w``, expressed with ``Rational`` since Leon doesn't quite
+yet support real numbers, and the rest of the measure values, denoted by ``m``.
+We also define a ``isMeasure`` property -- similar to the ``isRational``
+property presented above -- that recursively checks that every weights is a
+positive rational.
+
+.. code-block:: scala
+
+    /**
+     * Measures on discrete probability spaces.
+     */
+    sealed abstract class Meas[A] {
+
+      /** All weights must be positive. */
+      def isMeasure: Boolean = this match {
+        case Empty()       => true
+        case Cons(x, w, m) => w.isRational && w.isPositive && m.isMeasure
+      }
+
+      // ...
+    }
+
+    /** The empty measure maps every subset of the space A to 0. */
+    case class Empty[A]() extends Meas[A]
+
+    /**
+     * The 'Cons' measure adjoins an additional element 'x' of type 'A'
+     * to an existing measure 'm' over 'A'.  Note that 'x' might already
+     * be present in 'm'.
+     */
+    case class Cons[A](x: A, w: Rational, m: Meas[A]) extends Meas[A]
+
+
+One basic operation on such measure is computing the value of a measure on a
+given space (either the whole space `A` or one of its subset). The result of
+this operation should be a positive rational when the measure consists only of
+positive weights, as defined by the ``isMeasure`` property. But for Leon,
+simply claiming that the result is positive is not enough to find a witness.
+
+To circumvent this issue we need to perform structural induction on the current
+measure inside the postcondition as follows:
+
+.. code-block:: scala
+
+    /** Compute the value of this measure on a subset of the space 'A'. */
+    def apply(xs: Set[A]): Rational = {
+      require (isMeasure)
+      this match {
+        case Empty()       => Rational(0, 1)
+        case Cons(x, w, m) => if (xs contains x) w + m(xs) else m(xs)
+      }
+    } ensuring { res =>
+      res.isPositive because {
+        this match {
+          case Empty()       => trivial
+          case Cons(x, w, m) => m(xs).isPositive
+        }
+      }
+    }
+
+Notice the similarity between the pattern matching in the body of the function
+and the one in the postcondition.
+
 
 A complex example: additivity of measures
 -----------------------------------------
