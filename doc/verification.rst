@@ -464,7 +464,7 @@ Additionally, by using this DSL, we get the same feedback granularity from Leon
 as if we had used ``check`` statements. This way we can construct proofs based
 on equality more easily and directly identify where hints are vital.
 
-.. TODO limitations of DSL
+.. TODO limitations of DSL --> no straightforward support for <= and similar ops
 
 Limits of the approach: HOF & quantifiers
 *****************************************
@@ -481,9 +481,25 @@ A complex example: additivity of measures
 
 .. TODO
 
-Recap
------
+Quick Recap
+-----------
 
-.. TODO lessons learned
+Let's sum up what we've learned here. To write proof efficiently, it's good to
+keep the following in mind:
 
+1. Always use a proper timeout and ask Leon for more information about what he
+   tries to verify, e.g. ``--timeout=5 --debug=verification``.
+
+2. Use ``@induct`` when working on inductive proofs to get a more precise
+   feedback from Leon: he will decompose the proof into a base case and an
+   inductive case for the first argument of the function under consideration.
+
+3. Modularise your proofs and verify **sub-goals**!
+
+   - use plenty of helper lemmas;
+   - if possible use the proof DSL presented above;
+   - and use ``check`` abundantly.
+
+   This is especially handy when you can connect the two sides of a relational
+   claim with sub-statements.
 
