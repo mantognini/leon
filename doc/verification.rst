@@ -242,7 +242,7 @@ postconditions in Leon, one is basically writing Boolean
 predicates. They can be as simple as testing whether a list is empty
 or not, to more complex combinations of properties.  Lemmas or
 theorems are simply logical tautologies, that is, propositions that
-always hold.  They ca be expressed using Boolean-valued methods that
+always hold.  They can be expressed using Boolean-valued methods that
 return ``true`` for all their inputs.
 
 To make this more concrete, let's take a simple lemma as an
@@ -261,9 +261,6 @@ that it always holds.
         l1.content ++ l2.content == (l1 ++ l2).content
       }.holds
     }
-
-.. NOTE I used appendContent instead of appendAssoc because the latter use
-   @induct
 
 Here we wrote ``.holds`` which is a method implicitly available on ``Boolean``
 that ensure the returned value is ``true``. It is equivalent to writing
@@ -459,8 +456,8 @@ examples of such situations in the coming sections).  For such cases,
 one can use the ``check`` function from ``leon.proof``.  The ``check``
 function behaves as the identity function on Booleans but additionally
 assumes its argument in its precondition.  As a result, Leon will
-check that ``x`` holds while verifying the a call to ``check(x)``.
-For example, when verifying the following function
+check that ``x`` holds while verifying the call to ``check(x)``.
+For example, when verifying the following function:
 
 .. code-block:: scala
 
@@ -471,9 +468,9 @@ For example, when verifying the following function
     }
 
 Leon will check (separately) that ``x >= 0 || x < 0`` and ``x + 0 ==
-0`` hold for all ``x``, even though the function ``foo`` does not to
+0`` hold for all ``x``, even though the function ``foo`` does not
 specify any pre or postconditions, and report a counter example for
-the second case.::
+the second case::
 
     [  Info  ]  - Now considering 'precond. (call check(x >= 0 || x < 0))' VC for foo @40:5...
     [  Info  ]  => VALID
@@ -495,7 +492,7 @@ The vast majority of functional programs are written as functions over
 support for verifying properties of ADTs.  Among other things, Leon
 provides an annotation ``@induct``, which can be used to automatically
 prove postconditions of recursive functions defined on ADTs by way of
-*structural induction*.  We have already seen an example such an
+*structural induction*.  We have already seen an example of such an
 inductive property, namely ``rightUnitAppend``.  In fact, using
 ``@induct``, Leon is able to prove ``rightUnitAppend`` directly:
 
@@ -544,7 +541,7 @@ to ``check`` in each branch of the resulting pattern match:
 
 Clearly, the two versions of the lemma are equivalent: all we did was
 expand the proposition using a pattern match and add some calls to
-``check`` (remember ``check`` is acts as the identity function on its
+``check`` (remember ``check`` acts as the identity function on its
 argument).  Let's see what output Leon produces for the expanded
 version.::
 
@@ -579,7 +576,7 @@ manually reduce the inductive case and see where we get.
     }.holds
 
 And now we're stuck.  We can't apply the inductive hypothesis here,
-nor can we reduce the inductive case further, unless we to perform
+nor can we reduce the inductive case further, unless we perform
 case analysis on ``xs``, which would grow the term further without
 changing its shape.  To make any headway, we need to use an additional
 property of ``reverse``, given by the following lemma (which Leon *is*
@@ -652,7 +649,7 @@ function :math:`exp(x, y) = x^y` over integers:
 
 The function ``exp`` is again defined recursively, but this time using
 ``if`` statements rather than pattern matching.  Let's try and prove
-some properties this function using natural induction.  One such
+some properties of this function using natural induction.  One such
 property is that for any pair of positive numbers :math:`x, y \geq 0`,
 the exponential :math:`x^y` is again a positive number.
 
@@ -898,7 +895,7 @@ relations on a case-by-case basis.
 
 .. TODO add a word about requirement in ctor (e.g. Rational)
 
-.. Footnote linking to Etienne's answer on SO.
+.. TODO Footnote linking to Etienne's answer on SO.
 
 
 Limits of the approach: HOFs, quantifiers and termination
