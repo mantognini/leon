@@ -458,7 +458,7 @@ prove a seemingly trivial statement automatically (we will see
 examples of such situations in the coming sections).  For such cases,
 one can use the ``check`` function from ``leon.proof``.  The ``check``
 function behaves as the identity function on Booleans but additionally
-assumes its argument in its pre-condition.  As a result, Leon will
+assumes its argument in its precondition.  As a result, Leon will
 check that ``x`` holds while verifying the a call to ``check(x)``.
 For example, when verifying the following function
 
@@ -472,7 +472,7 @@ For example, when verifying the following function
 
 Leon will check (separately) that ``x >= 0 || x < 0`` and ``x + 0 ==
 0`` hold for all ``x``, even though the function ``foo`` does not to
-specify any pre or post conditions, and report a counter example for
+specify any pre or postconditions, and report a counter example for
 the second case.::
 
     [  Info  ]  - Now considering 'precond. (call check(x >= 0 || x < 0))' VC for foo @40:5...
@@ -494,7 +494,7 @@ The vast majority of functional programs are written as functions over
 :ref:`adts` (ADTs), and consequently, Leon comes with some special
 support for verifying properties of ADTs.  Among other things, Leon
 provides an annotation ``@induct``, which can be used to automatically
-prove post-conditions of recursive functions defined on ADTs by way of
+prove postconditions of recursive functions defined on ADTs by way of
 *structural induction*.  We have already seen an example such an
 inductive property, namely ``rightUnitAppend``.  In fact, using
 ``@induct``, Leon is able to prove ``rightUnitAppend`` directly:
@@ -695,7 +695,7 @@ inductive step, so let's continue unfolding ``exp`` for that case.
 
 Although Leon still isn't able to verify the lemma, we now see a way
 to prove the inductive step: ``x`` is positive (by the second
-pre-condition) and so is ``exp(x, y - 1)`` (by the inductive
+precondition) and so is ``exp(x, y - 1)`` (by the inductive
 hypothesis).  Hence the product ``x * exp(x, y - 1)`` is again
 positive.
 
@@ -942,7 +942,7 @@ defined on lists and makes crucial use of HOFs:
 
 A rather different, more general issue that arises when proving
 propositions using Leon is related to *termination checking*.  When
-verifying inductive proofs (and more generally the post-conditions of
+verifying inductive proofs (and more generally the postconditions of
 recursive methods), Leon assumes that the corresponding proofs are
 *well-founded*, or equivalently, that the corresponding recursive
 methods terminate on all inputs.  Yet Leon does not -- by default --
@@ -981,8 +981,8 @@ the risk of accidentally writing bogus proofs such as the one above.
 
 .. _post-cond:
 
-Techniques for proving non-trivial post-conditions
---------------------------------------------------
+Techniques for proving non-trivial postconditions
+-------------------------------------------------
 
 When proving a mathematical lemma, the return type of the
 corresponding function is most of
@@ -1089,9 +1089,9 @@ The defining operation on a measure ``m`` is its evaluation ``m(xs)``
 (or equivalently ``m.apply(xs)``) on some set ``xs: Set[A]``, i.e on a
 subset of the "space" ``A``.  The value of ``m`` should be a positive
 rational for any such set ``xs``, provided ``m.isMeasure`` holds.
-This suggests ``_.isPositive`` as the post-condition for ``apply()``,
+This suggests ``_.isPositive`` as the postcondition for ``apply()``,
 but simply claiming that the result is positive is not enough for Leon
-to verify this post-condition.
+to verify this postcondition.
 
 We can provide the necessary hint to Leon by performing structural
 induction on ``this`` inside the postcondition as follows:
@@ -1116,7 +1116,7 @@ induction on ``this`` inside the postcondition as follows:
 
 Notice the similarity between the pattern matches in the bodies of the
 ``apply`` functions and those in the postconditions.  With this hint,
-Leon is able to verify the post conditions.
+Leon is able to verify the postconditions.
 
 
 A complex example: additivity of measures
@@ -1198,7 +1198,7 @@ it's good to keep the following in mind:
    If Leon isn't able to verify the proof using ``@induct``, try
    performing manual case analysis.
 
-3. Modularise your proofs and verify *sub-goals*!
+3. Modularize your proofs and verify *sub-goals*!
 
    - use plenty of helper lemmas;
    - use ``check`` abundantly;
