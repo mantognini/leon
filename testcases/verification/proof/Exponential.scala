@@ -1,6 +1,6 @@
 /* Copyright 2009-2015 EPFL, Lausanne */
 
-package leon.testcases.verification.math
+package leon.testcases.verification.proof
 
 import leon.annotation._
 import leon.lang._
@@ -16,26 +16,27 @@ object Exponential {
     else             x * exp(x, y - 1)
   }
 
-  /** The exponential function is monotone. */
-  def monotone(x: BigInt, y: BigInt): Boolean = {
-    require(y >= 0 && x > 0)
-    exp(x, y) > 0 because {
-      if (y == 0) trivial
-      else        check {
-        x > 0 && exp(x, y - 1) > 0 because monotone(x, y - 1)
+  /** Exponentials of positive numbers are positive. */
+  def positive(x: BigInt, y: BigInt): Boolean = {
+    require(y >= 0 && x >= 0)
+    exp(x, y) >= 0 because {
+      if      (x == 0) trivial
+      else if (y == 0) trivial
+      else             check { /*
+        x >= 0 && */ x * exp(x, y - 1) >= 0 /*because positive(x, y - 1) */
       }
     }
   }.holds
 
-  /** The exponential function is monotone (shorter proof). */
-  def monotoneShort(x: BigInt, y: BigInt): Boolean = {
+  /** The exponential function is positive (shorter proof). */
+  def positiveShort(x: BigInt, y: BigInt): Boolean = {
     require(y >= 0 && x > 0)
-    exp(x, y) > 0 because {
-      if (y == 0) trivial
-      else        monotoneShort(x, y - 1)
+    exp(x, y) >= 0 because {
+      if      (x == 0) trivial
+      else if (y == 0) trivial
+      else             positiveShort(x, y - 1)
     }
   }.holds
-
 
   /**
    * The exponential function (with respect to a fixed base) is a
