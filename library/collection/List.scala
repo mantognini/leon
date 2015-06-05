@@ -568,6 +568,12 @@ object ListSpecs {
     l1 ++ Nil() == l1
   }.holds
 
+  // This follows immediately from the definition of `++` but we
+  // include it here anyway for completeness.
+  def leftUnitAppend[T](l1: List[T]): Boolean = {
+    Nil() ++ l1 == l1
+  }.holds
+
   def snocIsAppend[T](l: List[T], t: T): Boolean = {
     ( (l :+ t) == l ++ Cons[T](t, Nil()) ) because {
       l match {
@@ -596,12 +602,14 @@ object ListSpecs {
   }.holds
 
   def reverseReverse[T](l: List[T]): Boolean = {
-    ( l.reverse.reverse == l ) because {
+    l.reverse.reverse == l because {
       l match {
-        case Nil() =>
-          true
-        case Cons(x,xs) =>
-          reverseReverse[T](xs) && snocReverse[T](xs.reverse, x)
+        case Nil()       => trivial
+        case Cons(x, xs) => {
+          (xs.reverse :+ x).reverse ==| snocReverse[T](xs.reverse, x) |
+          x :: xs.reverse.reverse   ==| reverseReverse[T](xs)         |
+          (x :: xs)
+        }.qed
       }
     }
   }.holds
