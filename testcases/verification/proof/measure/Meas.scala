@@ -153,7 +153,7 @@ sealed abstract class Meas[A] {
   /** All weights must be positive. */
   def isMeasure: Boolean = this match {
     case Empty()       => true
-    case Cons(x, w, m) => w.isRational && w.isPositive && m.isMeasure
+    case Cons(x, w, m) => w.isPositive && m.isMeasure
   }
 }
 
