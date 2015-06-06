@@ -345,7 +345,7 @@ parts:
 2. ``because``, which is just some syntactic sugar for conjunction -- remember,
    every proposition is a Boolean formula;
 3. and a recursion on ``l1`` that serves as a hint for Leon to perform
-   case analysis.
+   induction.
 
 The recursion is based here on pattern matching, which Leon will also check for
 exhaustiveness.  It has essentially the same structure as
@@ -543,7 +543,7 @@ Clearly, the two versions of the lemma are equivalent: all we did was
 expand the proposition using a pattern match and add some calls to
 ``check`` (remember ``check`` acts as the identity function on its
 argument).  Let's see what output Leon produces for the expanded
-version.::
+version::
 
     [  Info  ]  - Now considering 'postcondition' VC for reverseReverse @615:5...
     [Warning ]  => UNKNOWN
@@ -1041,21 +1041,21 @@ Measures: a slightly more complex example
 *****************************************
 
 Now let's look at a slightly more complex example: measures on
-discrete probability spaces.  We can represent such measures using a
+discrete probability spaces.  We represent such measures using a
 ``List``-like recursive data structure: a generic abstract class
-``Meas[A]`` that has to subclasses, ``Empty[A]`` and ``Cons[A]``.  The
-constructor of the class ``Empty[A]`` takes no arguments; it
+``Meas[A]`` that has two subclasses, ``Empty[A]`` and ``Cons[A]``.
+The constructor of the class ``Empty[A]`` takes no arguments; it
 represents an "empty" measure that evaluates to 0 when applied to any
-set of values of type ``A``.  The constructor of ``Cons[A]``, on
-the other hand, takes three parameters: a value ``x``, its associated
+set of values of type ``A``.  The constructor of ``Cons[A]``, on the
+other hand, takes three parameters: a value ``x``, its associated
 weight ``w`` expressed as a ``Rational`` (since Leon doesn't quite yet
 support real numbers out of the box), and another measure ``m`` on
 ``A``.  The value ``Cons(x, w, m)`` represents the measure obtained by
 adding to ``m`` the "single-point" measure that evaluates to ``w`` at
-``x`` and to 0 everywhere else.  We also define a ``isMeasure``
+``x`` and to 0 everywhere else.  We also define an ``isMeasure``
 property -- similar to the ``isRational`` property presented above --
 which recursively checks that all the weights in a measure are
-positive rationals.
+positive rationals (note that all our measures have finite support).
 
 .. code-block:: scala
 
@@ -1065,7 +1065,7 @@ positive rationals.
       /** All weights must be positive. */
       def isMeasure: Boolean = this match {
         case Empty()       => true
-        case Cons(x, w, m) => w.isRational && w.isPositive && m.isMeasure
+        case Cons(x, w, m) => w.isPositive && m.isMeasure
       }
 
       // ...
@@ -1083,10 +1083,10 @@ positive rationals.
 
 
 The defining operation on a measure ``m`` is its evaluation ``m(xs)``
-(or equivalently ``m.apply(xs)``) on some set ``xs: Set[A]``, i.e on a
+(or equivalently ``m.apply(xs)``) on some set ``xs: Set[A]``, i.e. on a
 subset of the "space" ``A``.  The value of ``m`` should be a positive
 rational for any such set ``xs``, provided ``m.isMeasure`` holds.
-This suggests ``_.isPositive`` as the postcondition for ``apply()``,
+This suggests ``_.isPositive`` as the postcondition for ``apply``,
 but simply claiming that the result is positive is not enough for Leon
 to verify this postcondition.
 
@@ -1111,9 +1111,9 @@ induction on ``this`` inside the postcondition as follows:
       }
     }
 
-Notice the similarity between the pattern matches in the bodies of the
-``apply`` functions and those in the postconditions.  With this hint,
-Leon is able to verify the postconditions.
+Notice the similarity between the pattern match in the body of the
+``apply`` function and that in the postcondition.  With this hint,
+Leon is able to verify the postcondition.
 
 
 A complex example: additivity of measures
@@ -1122,9 +1122,10 @@ A complex example: additivity of measures
 Using the principles and techniques discussed so far, one can prove
 quite advanced propositions using Leon.  Returning to the
 measure-theoretic example from the previous section, we would like to
-prove that our implementation of measures are properly *additive*.
-Formally, a measure :math:`\mu: A \to \mathbb{R}` on a countable set
-:math:`A` must fulfill the following additivity property:
+prove that our implementation of measures is properly *additive*.
+Formally, a measure :math:`\mu \colon A \to \mathbb{R}` on a countable
+set :math:`A` must fulfill the following additivity property
+[#dicrete-meas]_:
 
 .. math::
 
@@ -1217,3 +1218,8 @@ it's good to keep the following in mind:
    live in the same universe in Leon.  This is contrary to
    e.g. type-theoretic proof assistants where propositions are
    represented by types and proofs are terms inhabiting such types.
+
+.. [#dicrete-meas] To be precise, we are assuming here the underlying
+   measurable space :math:`(A, \mathcal{P}(A))`, where :math:`A` is
+   countable and :math:`\mathcal{P}(A)` denotes its discrete σ-algebra
+   (i.e. the power set of :math:`A`).
